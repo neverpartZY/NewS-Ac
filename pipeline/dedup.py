@@ -85,7 +85,9 @@ def semantic_dedup(docs):
 def dedup(docs):
     """完整去重：URL 精确 + embedding 语义 + LLM 临界仲裁。返回 (keep, dups, skipped_exact)。"""
     docs, skipped = exact_dedup(docs)
-    _embed_docs(docs)
+    if docs and _embed_docs(docs) is None:
+        # 降级必须可见：否则语义去重静默失效，用户以为有实则在裸跑 URL 去重
+        print("[dedup] ⚠️ embedding 失败/未配置，本轮退化为仅 URL 去重（语义去重未生效）")
     keep, dups = semantic_dedup(docs)
     return keep, dups, skipped
 

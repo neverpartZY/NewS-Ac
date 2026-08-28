@@ -26,9 +26,20 @@ def _collapse(docs):
     return list(seen.values())
 
 
+ENGINE_KEY_ENV = {"serper": "SERPER_API_KEY", "tavily": "TAVILY_API_KEY"}
+
+
 def collect(freqs):
-    """多引擎采集。freqs: 要跑的 task 频率集合（如 {'D1'}），None=全部 auto。"""
+    """多引擎采集，并统计各引擎产出（供健康判断，区分「引擎失效」与「无新闻」）。"""
     docs = []
+    stats = {}  # engine -> {"queries": n, "docs": n}
+
+    def _track(name, results):
+        s = stats.setdefault(name, {"queries": 0, "docs": 0})
+        s["queries"] += 1
+        s["docs"] += len(results)
+        return results
+
     for t in config.TASKS:
         if not t.get("auto"):
             continue
@@ -38,14 +49,47 @@ def collect(freqs):
         lang = t.get("lang", "zh")
         # P1-2：用任务维度预标注 scope（V4→chemical / V5→rpet），供 refine 权威采用
         hint = scope_hint_from_dim(t.get("dim", ""))
-        task_docs = serper.search(q, config.FRESH_DAYS, lang) + tavily.search(q, config.FRESH_DAYS, lang)
+        task_docs = (_track("serper", serper.search(q, config.FRESH_DAYS, lang))
+                     + _track("tavily", tavily.search(q, config.FRESH_DAYS, lang)))
         for c in task_docs:
             c.scope_hint = hint
         docs += task_docs
-    docs += gzh.collect(config.FRESH_DAYS)
-    docs += source_site.collect()
+    docs += _track("gzh", gzh.collect(config.FRESH_DAYS))
+    docs += _track("site", source_site.collect())
     price_points = price.collect()
-    return _collapse(docs), price_points
+    return _collapse(docs), price_points, stats
+
+
+def _engine_health(stats):
+    """引擎健康：有 key 且有查询但 0 产出 → 疑似失效；未配 key → 跳过。"""
+    failed, skipped, ok = [], [], []
+    for name, s in stats.items():
+        if name in ENGINE_KEY_ENV:
+            keyed = bool(config.get_key(ENGINE_KEY_ENV[name]))
+        elif name == "gzh":
+            keyed = bool(gzh._key())
+        else:  # site 等衍生通道，随其上游引擎
+            keyed = True
+        if not keyed:
+            skipped.append(name)
+        elif s["queries"] > 0 and s["docs"] == 0:
+            failed.append(name)
+        else:
+            ok.append(name)
+    return failed, skipped, ok
+
+
+def _alert_markdown(stats, failed, skipped, date_str):
+    """引擎失效告警正文。"""
+    lines = ["# ⚠️ 采集异常告警", date_str, "",
+             "本轮采集总产出为 0，疑似引擎失效（key 失效 / 配额用尽 / 网络问题），而非当天无新闻。",
+             "按旧系统「空转兜底」规则：不生成空日报冒充正常，先告警。", "",
+             "## 各引擎状态", "", "| 引擎 | 查询次数 | 产出 | 状态 |", "|---|---|---|---|"]
+    for name, s in stats.items():
+        st = "疑似失效" if name in failed else ("未配 key" if name in skipped else "正常")
+        lines.append(f"| {name} | {s['queries']} | {s['docs']} | {st} |")
+    lines += ["", "排查后手动重跑：`python main.py --once`"]
+    return "\n".join(lines)
 
 
 def _scope_filter(articles, report_name):
@@ -60,10 +104,26 @@ def run(dry_run=False, do_push=True, freqs=None):
     """跑一轮完整流水线。返回汇总 dict。"""
     summary = {}
     # 1. 采集
-    docs, price_points = collect(freqs)
+    docs, price_points, stats = collect(freqs)
     summary["collected"] = len(docs)
     summary["price_points"] = len(price_points)
-    print(f"[collect] 候选 {len(docs)} 条 / 价格点 {len(price_points)} 个")
+    failed, skipped, ok = _engine_health(stats)
+    summary["engines"] = {"ok": ok, "failed": failed, "skipped": skipped}
+    print(f"[collect] 候选 {len(docs)} 条 / 价格点 {len(price_points)} 个 "
+          f"| 引擎 ok={ok} failed={failed} skipped={skipped}")
+
+    # 1.5 空转兜底（旧系统铁律：先判引擎失效，再判无新闻）
+    if not docs:
+        summary["status"] = "alert_no_collection"
+        print("[health] ⚠️ 全部引擎 0 产出，按「引擎失效」处理：发告警，不生成空日报")
+        if do_push and not dry_run:  # dry-run 绝不外发
+            alert = _alert_markdown(stats, failed, skipped, config.today_str())
+            st = push_mod.email.send_alert(f"⚠️ 采集异常告警 · {config.today_str()}", alert)
+            print(f"[alert] 邮件告警: {st}")
+        return summary
+
+    if failed:
+        print(f"[health] ⚠️ 引擎疑似失效（有 key 但 0 产出）: {failed}，本轮日报覆盖可能下降")
 
     if dry_run:
         summary["docs"] = docs

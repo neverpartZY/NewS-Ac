@@ -109,6 +109,11 @@ python3 -m venv .venv                       # 需 Python 3.9+
 .venv/bin/pip install -r requirements.txt
 ```
 
+**企微通道**（两段式，对齐真实链路）：
+
+- 段1 · 群消息（Python 直接发，零依赖零授权）：群机器人 webhook 发「标题 + 核心叙事摘要 + 完整版见邮件」短消息，只需 `config/webhook_groups.json` 里的 URL，服务器开箱即用。
+- 段2 · 智能文档（交接给服务器 OpenClaw）：创建走 OpenClaw 企微插件的 `wecom_mcp`（doc 品类已开通 23 工具；msg/contact 未开通，errcode 846610），凭证由插件在企微管理后台配置，Python 不直连。程序生成 `reports/*_wecom_handoff.json`（smartpage_create 参数规格），服务器 OpenClaw agent 照单执行创建，拿到链接后转发到群。
+
 ### 3. 定时（cron）
 
 `run.sh` 已封装好（自动用 `.venv/bin/python` + 追加日志到 `logs/`）。

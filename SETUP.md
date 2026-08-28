@@ -18,6 +18,7 @@
 | `WEIXINZS_API_KEY` | 公众号采集（weixinzs.org） | ⭕ | 旧 `mp-article-subscription` skill 的 `api_key.txt`（`sk-live` 开头） |
 | `RESEND_API_KEY` | 邮件推送 | ⭕ | https://resend.com |
 | `FROM_EMAIL` | 邮件发件人 | ⭕ | 如 `日报 <daily@greenplastic.ai>` |
+| `ALERT_EMAIL` | 引擎失效告警收件箱（逗号分隔；留空回落日报收件人） | ⭕ | — |
 | `REDFOX_API_KEY` | 红狐（爆款榜，**本系统不采集**） | ❌ | — |
 | `WECHAT_MP_APPID` | 公众号草稿箱（走白名单服务器中转，非直连） | ⭕ | 微信公众平台后台 |
 | `WECHAT_MP_SECRET` | 同上 | ⭕ | 微信公众平台后台 |
@@ -79,9 +80,9 @@ copy config\email_recipients.example.json config\email_recipients.json
 | 通道 | 实现 | 前置 |
 |---|---|---|
 | 邮件 | Resend HTTP | `RESEND_API_KEY` + `FROM_EMAIL` + `config/email_recipients.json` |
-| 企业微信 | 群机器人 webhook | `config/webhook_groups.json` |
-| IMA 知识库 | ima-mcp MCP 连接器（Claude Code 会话内） | ima-mcp 连接器 connected |
-| 公众号草稿箱 | `gjb-wechat-draft` skill + 白名单服务器 `43.128.140.186`（SSH） | SSH 私钥 + 各公众号 IP 白名单 |
+| 企业微信 | webhook 短消息（Python 直接发，零授权）+ 智能文档交接文件（服务器 OpenClaw 的 wecom_mcp 创建，doc 品类） | `config/webhook_groups.json`；智能文档待服务器 OpenClaw 配置后执行 `reports/*_wecom_handoff.json` |
+| IMA 知识库 | IMA OpenAPI 直连（create_media → COS → add_knowledge） | `IMA_OPENAPI_CLIENTID/APIKEY` 或 `~/.config/ima/` |
+| 公众号草稿箱 | **全自动**：scp + ssh 到白名单服务器跑 `publish_article_multi.py` 建草稿（只建草稿不发表） | `.env` 配 `WECHAT_SSH_KEY`（私钥路径）；无私钥自动降级为交接文件模式。IP 白名单由团队维护 |
 
 每路独立可插拔：缺 key/前置未就绪 → 打印告警跳过，不阻塞其它路。
 

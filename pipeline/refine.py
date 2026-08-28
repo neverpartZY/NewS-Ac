@@ -5,6 +5,7 @@ fail-soft：LLM 不可用/失败 → 用原标题/摘要兜底，绝不丢条目
 scope 归属：有 scope_hint（来自采集任务维度）则权威采用；无则交 LLM 判定（公众号/源站等）。
 """
 import json
+import re
 
 import config
 from . import llm
@@ -49,10 +50,33 @@ def _fmt_date(ds):
     return dt.strftime("%Y-%m-%d") if dt else (ds or "")
 
 
+def _norm_scope(v):
+    """LLM 给的 scope 可能是中文/别名/未知值，归一化到 chemical/rpet/general 枚举。"""
+    v = (v or "").strip().lower()
+    if v in ("chemical", "rpet", "general"):
+        return v
+    if any(k in v for k in ("化学", "热解", "裂解", "解聚", "气化", "水热", "chemical", "pyrolysis")):
+        return "chemical"
+    if any(k in v for k in ("pet", "瓶片", "瓶砖")):
+        return "rpet"
+    return "general"
+
+
 def _article(d: Candidate, x: dict) -> Article:
     title_zh = x.get("title_zh") or d.title
     summary_zh = x.get("summary_zh") or d.snippet[:120]
-    scope = d.scope_hint if d.scope_hint else (x.get("scope") or "general")
+    # scope：任务维度预标注权威优先；否则归一化 LLM 输出
+    scope = d.scope_hint if d.scope_hint else _norm_scope(x.get("scope"))
+    try:
+        importance = int(x.get("importance", 3))
+    except (TypeError, ValueError):
+        importance = 3  # LLM 返回「高」等非数字时不崩，回落默认
+    importance = max(1, min(5, importance))
+    tags = x.get("tags", [])
+    if isinstance(tags, str):  # LLM 有时给 "回收, PET" 字符串
+        tags = [t.strip() for t in re.split(r"[,，、;；]", tags) if t.strip()]
+    if not isinstance(tags, list):
+        tags = []
     return Article(
         url_hash=d.url_hash,
         title=d.title,
@@ -60,8 +84,8 @@ def _article(d: Candidate, x: dict) -> Article:
         summary_zh=summary_zh,
         category=x.get("category", "general"),
         scope=scope,
-        importance=int(x.get("importance", 3)),
-        tags=x.get("tags", []),
+        importance=importance,
+        tags=tags,
         source=d.engine,
         site=d.site,
         url=d.url,

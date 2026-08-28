@@ -30,10 +30,14 @@ def _creds():
     return cid, key
 
 
+SKILL_VERSION = "1.1.8"  # 对齐 ima-skill meta.json；服务端校验 skill_version 头（缺失报 200002 skill auth failed）
+
+
 def _headers(cid, key):
     return {
         "ima-openapi-clientid": cid,
         "ima-openapi-apikey": key,
+        "ima-openapi-ctx": f"skill_version={SKILL_VERSION}",
         "Content-Type": "application/json",
     }
 
