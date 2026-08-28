@@ -1,0 +1,18 @@
+{
+  "queries": [
+    {"dim": "H1×EU", "region": "EU", "h": "H1", "query": "EU Packaging and Packaging Waste Regulation PPWR implementation status and recycled content targets, latest August 2026"},
+    {"dim": "H1×US", "region": "US", "h": "H1", "query": "US state packaging EPR law California plastic recycled content mandate, latest 2026"},
+    {"dim": "H1×GLOBAL", "region": "GLOBAL", "h": "H1", "query": "UN global plastics treaty INC negotiations plastic pollution, latest status 2026"},
+    {"dim": "H2×GLOBAL", "region": "GLOBAL", "h": "H2", "query": "food-grade rPET FDA EFSA approval certification, latest news 2026"},
+    {"dim": "H3×EU", "region": "EU", "h": "H3", "query": "European rPET recycled PET flake price market trend, August 2026"},
+    {"dim": "H4×GLOBAL", "region": "GLOBAL", "h": "H4", "query": "chemical recycling plastic company funding investment M&A financing, 2026"},
+    {"dim": "H5×GLOBAL", "region": "GLOBAL", "h": "H5", "query": "plastic recycling company expansion new plant closure collaboration, latest 2026"},
+    {"dim": "H7×GLOBAL", "region": "GLOBAL", "h": "H7", "query": "chemical recycling plastic waste technology breakthrough depolymerization catalyst, 2026"},
+    {"dim": "H8×GLOBAL", "region": "GLOBAL", "h": "H8", "query": "chemical recycling criticism controversy commercial viability debate, 2026"},
+    {"dim": "H9×GLOBAL", "region": "GLOBAL", "h": "H9", "query": "global plastic recycling rate market size statistics report, 2026"},
+    {"dim": "H10×GLOBAL", "region": "GLOBAL", "h": "H10", "query": "plastic sorting pyrolysis recycling equipment supplier contract order, 2026"},
+    {"dim": "H11×SEA", "region": "SEA", "h": "H11", "query": "Vietnam anti-dumping recycled PET waste plastic import ban Southeast Asia, 2026"},
+    {"dim": "IN×H1", "region": "IN", "h": "H1", "query": "India plastic waste management rules recycled content mandate rPET, latest 2026"},
+    {"dim": "AF×H1", "region": "GLOBAL", "h": "H1", "query": "Africa plastic pollution governance global plastics treaty INC, latest 2026"}
+  ]
+}

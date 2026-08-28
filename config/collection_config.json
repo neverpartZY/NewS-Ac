@@ -1,0 +1,713 @@
+{
+  "fresh_windows": {
+    "H1": 7,
+    "H2": 7,
+    "H3": 2,
+    "H4": 7,
+    "H5": 3,
+    "H6": 7,
+    "H7": 7,
+    "H8": 7,
+    "H9": 7,
+    "H10": 7,
+    "H11": 7
+  },
+  "exclude_thermal": "-轮胎 -煤 -生物碳 -木屑 -tyre -tire -coal -biomass -biocarbon",
+  "noise_words": [
+    "轮胎",
+    "tyre",
+    "tire",
+    "煤热解",
+    "coal",
+    "生物炭",
+    "biocarbon",
+    "biomass",
+    "木屑",
+    "生物质",
+    "爱美客",
+    "医美",
+    "玻尿酸",
+    "肉毒素",
+    "莫德纳",
+    "Moderna",
+    "疫苗",
+    "纳斯达克",
+    "美股",
+    "沃尔玛",
+    "特斯拉",
+    "英伟达",
+    "乙二醇",
+    "MEG",
+    "期货",
+    "主力合约",
+    "盘面",
+    "涨停",
+    "跌停",
+    "多头",
+    "空头",
+    "持仓",
+    "基差",
+    "套利",
+    "期价",
+    "现货报价",
+    "期货行情",
+    "交易日",
+    "合约",
+    "焦煤",
+    "焦炭",
+    "原油期货",
+    "甲醇期货",
+    "PTA期货",
+    "聚酯链",
+    "商品期货",
+    "财经"
+  ],
+  "content_noise_words": [
+    "解决方案",
+    "解決方案",
+    "solution",
+    "products",
+    "services",
+    "certificates",
+    "for sale",
+    "报价",
+    "厂家",
+    "供应商",
+    "manufacturer",
+    "回收解决方案",
+    "产品中心",
+    "关于我们",
+    "公司简介",
+    "about us",
+    "home",
+    "首页",
+    "用途是什么",
+    "what is",
+    "faq"
+  ],
+  "domain_words": [
+    "塑料",
+    "plastic",
+    "化学回收",
+    "chemical recycling",
+    "废塑",
+    "rpet",
+    "pet",
+    "聚酯",
+    "polyester"
+  ],
+  "signals": {
+    "政策": [
+      "发布",
+      "实施",
+      "生效",
+      "强制",
+      "规划",
+      "征求意见",
+      "监管",
+      "补贴",
+      "法规",
+      "条例",
+      "政策"
+    ],
+    "技术": [
+      "突破",
+      "首创",
+      "研发",
+      "中试",
+      "专利",
+      "认证",
+      "获批",
+      "通过"
+    ],
+    "市场": [
+      "涨价",
+      "跌价",
+      "上涨",
+      "下跌",
+      "报价",
+      "价格",
+      "供不应求",
+      "行情",
+      "毛利率"
+    ],
+    "风险": [
+      "处罚",
+      "停产",
+      "查封",
+      "召回",
+      "破产",
+      "着火",
+      "爆炸",
+      "事故",
+      "违规",
+      "造假",
+      "诉讼",
+      "减值",
+      "亏损"
+    ],
+    "事件": [
+      "投产",
+      "开工",
+      "满负荷",
+      "扩产",
+      "签约",
+      "合作",
+      "建成",
+      "投运",
+      "落地",
+      "环评"
+    ],
+    "资本": [
+      "融资",
+      "IPO",
+      "上市",
+      "并购",
+      "收购",
+      "募资",
+      "领投",
+      "投资",
+      "增资"
+    ]
+  },
+  "regions": [
+    [
+      "EU",
+      [
+        "欧盟",
+        "PPWR",
+        "欧洲",
+        "European",
+        "布鲁塞尔"
+      ]
+    ],
+    [
+      "US",
+      [
+        "美国",
+        "EPA",
+        "Kingsport",
+        "Texas",
+        "休斯顿"
+      ]
+    ],
+    [
+      "JP-KR",
+      [
+        "日本",
+        "韩国",
+        "出光",
+        "LG",
+        "千叶",
+        "唐津"
+      ]
+    ],
+    [
+      "IN",
+      [
+        "印度",
+        "Rajasthan",
+        "India"
+      ]
+    ],
+    [
+      "SEA",
+      [
+        "东南亚",
+        "印尼",
+        "越南",
+        "泰国",
+        "马来西亚"
+      ]
+    ],
+    [
+      "CN",
+      [
+        "中国",
+        "国内",
+        "发改委",
+        "工信部",
+        "生态环境部",
+        "广东",
+        "山东",
+        "江苏"
+      ]
+    ]
+  ],
+  "tasks": [
+    {
+      "dim": "V1×H3",
+      "query": "原油 石脑油 乙烯 价格 涨跌",
+      "h": "H3",
+      "auto": true,
+      "freq": "D1"
+    },
+    {
+      "dim": "V1×H9",
+      "query": "原生塑料 产能 产量 统计",
+      "h": "H9",
+      "auto": false,
+      "freq": "W1"
+    },
+    {
+      "dim": "V2×H1",
+      "query": "废塑料 回收体系 反向开票 政策",
+      "h": "H1",
+      "auto": true,
+      "freq": "D1"
+    },
+    {
+      "dim": "V2×H3",
+      "query": "废塑料 毛料 瓶砖 价格 行情",
+      "h": "H3",
+      "auto": true,
+      "freq": "D1"
+    },
+    {
+      "dim": "V2×H9",
+      "query": "废塑料 回收率 统计数据",
+      "h": "H9",
+      "auto": false,
+      "freq": "W1"
+    },
+    {
+      "dim": "V3×H5",
+      "query": "弓叶科技 AI 分选 中心 投产",
+      "h": "H5",
+      "auto": true,
+      "freq": "D2"
+    },
+    {
+      "dim": "V3×H7",
+      "query": "高光谱 塑料 分选 技术 突破",
+      "h": "H7",
+      "auto": false,
+      "freq": "D3"
+    },
+    {
+      "dim": "V4×H1",
+      "query": "化学回收 热解 监管 政策",
+      "h": "H1",
+      "auto": true,
+      "freq": "D1"
+    },
+    {
+      "dim": "V4×H5",
+      "query": "惠城环保 热解 装置 满负荷",
+      "h": "H5",
+      "auto": true,
+      "freq": "D1"
+    },
+    {
+      "dim": "V4×H5",
+      "query": "化学回收 塑料 热解 投产",
+      "h": "H5",
+      "auto": true,
+      "freq": "D1"
+    },
+    {
+      "dim": "V4×H4",
+      "query": "化学回收 融资 并购 化学循环",
+      "h": "H4",
+      "auto": false,
+      "freq": "D2"
+    },
+    {
+      "dim": "V4×H7",
+      "query": "PET 酶解 中试 突破",
+      "h": "H7",
+      "auto": false,
+      "freq": "D3"
+    },
+    {
+      "dim": "V4×H8",
+      "query": "化学回收 争议 商业可行性",
+      "h": "H8",
+      "auto": false,
+      "freq": "D3"
+    },
+    {
+      "dim": "V5×H2",
+      "query": "食品级 rPET FDA EFSA 认证",
+      "h": "H2",
+      "auto": true,
+      "freq": "D1"
+    },
+    {
+      "dim": "V5×H3",
+      "query": "再生PET 瓶片 价格 上涨",
+      "h": "H3",
+      "auto": true,
+      "freq": "D1"
+    },
+    {
+      "dim": "V5×H4",
+      "query": "再生纤维 IPO 募资 亿元",
+      "h": "H4",
+      "auto": false,
+      "freq": "D2"
+    },
+    {
+      "dim": "V5×H9",
+      "query": "再生PET 产能 进出口 数据",
+      "h": "H9",
+      "auto": false,
+      "freq": "W1"
+    },
+    {
+      "dim": "V6×H1",
+      "query": "品牌 再生料 承诺 监管",
+      "h": "H1",
+      "auto": false,
+      "freq": "D2"
+    },
+    {
+      "dim": "V6×H4",
+      "query": "品牌 领投 酶法 回收 融资",
+      "h": "H4",
+      "auto": false,
+      "freq": "D2"
+    },
+    {
+      "dim": "A1×H5",
+      "query": "涤纶再生 项目 投产",
+      "h": "H5",
+      "auto": true,
+      "freq": "D1"
+    },
+    {
+      "dim": "A1×H4",
+      "query": "废纺织 回收 融资 再生",
+      "h": "H4",
+      "auto": false,
+      "freq": "D2"
+    },
+    {
+      "dim": "A1×H7",
+      "query": "纤维到纤维 技术 突破",
+      "h": "H7",
+      "auto": false,
+      "freq": "D3"
+    },
+    {
+      "dim": "A2×H1",
+      "query": "汽车 塑料 ELV 法规",
+      "h": "H1",
+      "auto": false,
+      "freq": "D3"
+    },
+    {
+      "dim": "A2×H5",
+      "query": "汽车 PP 回收 项目 落地",
+      "h": "H5",
+      "auto": false,
+      "freq": "D3"
+    },
+    {
+      "dim": "A3×H2",
+      "query": "软包装 可回收设计 标准",
+      "h": "H2",
+      "auto": false,
+      "freq": "D1"
+    },
+    {
+      "dim": "A3×H1",
+      "query": "软塑 回收 试点 政策",
+      "h": "H1",
+      "auto": false,
+      "freq": "D2"
+    },
+    {
+      "dim": "A3×H5",
+      "query": "包装 回收 再生 项目 投产",
+      "h": "H5",
+      "auto": false,
+      "freq": "D2"
+    },
+    {
+      "dim": "A4×H5",
+      "query": "电子 塑料 WEEE 回收",
+      "h": "H5",
+      "auto": false,
+      "freq": "D4"
+    },
+    {
+      "dim": "A5×H2",
+      "query": "建筑 塑料 管道 回收 标准",
+      "h": "H2",
+      "auto": false,
+      "freq": "D4"
+    },
+    {
+      "dim": "A6×H2",
+      "query": "农膜 地膜 回收 标准",
+      "h": "H2",
+      "auto": false,
+      "freq": "D5"
+    },
+    {
+      "dim": "A7×H5",
+      "query": "海洋塑料 清理 项目",
+      "h": "H5",
+      "auto": false,
+      "freq": "D3"
+    },
+    {
+      "dim": "A7×H8",
+      "query": "海洋塑料 政策 争议",
+      "h": "H8",
+      "auto": false,
+      "freq": "D4"
+    },
+    {
+      "dim": "A8×H5",
+      "query": "废弃渔网 回收 再生",
+      "h": "H5",
+      "auto": false,
+      "freq": "D4"
+    },
+    {
+      "dim": "A9×H2",
+      "query": "EPS 泡沫 回收 标准",
+      "h": "H2",
+      "auto": false,
+      "freq": "D5"
+    },
+    {
+      "dim": "A10×H5",
+      "query": "医疗塑料 回收 项目",
+      "h": "H5",
+      "auto": false,
+      "freq": "D5"
+    },
+    {
+      "dim": "A11×H5",
+      "query": "快递 循环箱 再生塑料",
+      "h": "H5",
+      "auto": false,
+      "freq": "D3"
+    },
+    {
+      "dim": "A12×H5",
+      "query": "鞋材 再生 运动装备",
+      "h": "H5",
+      "auto": false,
+      "freq": "D4"
+    },
+    {
+      "dim": "A13×H5",
+      "query": "家居 再生塑料 宜家",
+      "h": "H5",
+      "auto": false,
+      "freq": "W1"
+    },
+    {
+      "dim": "A14×H2",
+      "query": "玩具 再生料 标准 乐高",
+      "h": "H2",
+      "auto": false,
+      "freq": "W1"
+    },
+    {
+      "dim": "A15×H7",
+      "query": "3D打印 再生塑料 线材",
+      "h": "H7",
+      "auto": false,
+      "freq": "D5"
+    },
+    {
+      "dim": "V0×H3",
+      "query": "原油 PTA MEG 价格",
+      "h": "H3",
+      "auto": true,
+      "freq": "D1"
+    },
+    {
+      "dim": "V2.5×H1",
+      "query": "押金制 EPR 回收体系",
+      "h": "H1",
+      "auto": false,
+      "freq": "D2"
+    },
+    {
+      "dim": "V4×H10",
+      "query": "热解 分选 设备 出海 订单",
+      "h": "H10",
+      "auto": false,
+      "freq": "D2"
+    },
+    {
+      "dim": "V2×H11",
+      "query": "越南 再生PET 反倾销 禁废 再生料贸易",
+      "h": "H11",
+      "auto": false,
+      "freq": "D3"
+    },
+    {
+      "dim": "V4×H1",
+      "query": "chemical recycling regulation Europe",
+      "h": "H1",
+      "auto": true,
+      "freq": "D1",
+      "lang": "en"
+    },
+    {
+      "dim": "V4×H5",
+      "query": "chemical recycling plant Europe startup",
+      "h": "H5",
+      "auto": true,
+      "freq": "D1",
+      "lang": "en"
+    },
+    {
+      "dim": "V5×H2",
+      "query": "food-grade rPET EFSA FDA certification",
+      "h": "H2",
+      "auto": true,
+      "freq": "D1",
+      "lang": "en"
+    },
+    {
+      "dim": "V5×H9",
+      "query": "plastic recycling rate Europe US statistics",
+      "h": "H9",
+      "auto": true,
+      "freq": "D2",
+      "lang": "en"
+    },
+    {
+      "dim": "V6×H1",
+      "query": "brand recycled content commitment regulation",
+      "h": "H1",
+      "auto": true,
+      "freq": "D2",
+      "lang": "en"
+    },
+    {
+      "dim": "A1×H5",
+      "query": "textile recycling fiber-to-fiber project",
+      "h": "H5",
+      "auto": true,
+      "freq": "D2",
+      "lang": "en"
+    },
+    {
+      "dim": "A2×H1",
+      "query": "automotive plastics ELV regulation",
+      "h": "H1",
+      "auto": true,
+      "freq": "D3",
+      "lang": "en"
+    },
+    {
+      "dim": "IN",
+      "query": "India rPET price recycled content mandate",
+      "h": "H3",
+      "auto": true,
+      "freq": "D3",
+      "lang": "en"
+    },
+    {
+      "dim": "SEA",
+      "query": "Southeast Asia plastic waste import ban",
+      "h": "H1",
+      "auto": true,
+      "freq": "D3",
+      "lang": "en"
+    },
+    {
+      "dim": "GLOBAL",
+      "query": "global plastics treaty INC negotiation",
+      "h": "H1",
+      "auto": true,
+      "freq": "W1",
+      "lang": "en"
+    },
+    {
+      "dim": "V2×H5",
+      "query": "再生塑料 企业 停产 关停 整顿",
+      "h": "H5",
+      "auto": true,
+      "freq": "D1"
+    },
+    {
+      "dim": "V2×H1",
+      "query": "塑料回收 环保处罚 通报 整改",
+      "h": "H1",
+      "auto": true,
+      "freq": "D2"
+    },
+    {
+      "dim": "V2×H5",
+      "query": "塑料 回收厂 着火 事故 爆炸",
+      "h": "H5",
+      "auto": true,
+      "freq": "D2"
+    },
+    {
+      "dim": "V2×H4",
+      "query": "再生塑料 并购 收购 重组",
+      "h": "H4",
+      "auto": true,
+      "freq": "D2"
+    },
+    {
+      "dim": "V2×H4",
+      "query": "塑料回收 企业 破产 退市",
+      "h": "H4",
+      "auto": false,
+      "freq": "D3"
+    },
+    {
+      "dim": "V2×H5",
+      "query": "再生塑料 项目 环评 公示 受理",
+      "h": "H5",
+      "auto": false,
+      "freq": "D2"
+    },
+    {
+      "dim": "V4×H7",
+      "query": "塑料 回收 专利 公开 授权",
+      "h": "H7",
+      "auto": false,
+      "freq": "D3"
+    },
+    {
+      "dim": "V2×H9",
+      "query": "再生塑料 上市公司 公告 业绩",
+      "h": "H9",
+      "auto": false,
+      "freq": "D3"
+    }
+  ],
+  "hard_noise_words": [
+    "乙二醇",
+    "MEG",
+    "期货",
+    "主力合约",
+    "盘面",
+    "涨停",
+    "跌停",
+    "多头",
+    "空头",
+    "持仓",
+    "基差",
+    "套利",
+    "期价",
+    "交易日",
+    "合约",
+    "焦煤",
+    "焦炭",
+    "原油期货",
+    "甲醇期货",
+    "PTA期货",
+    "商品期货",
+    "财经资讯",
+    "股市",
+    "A股",
+    "上证",
+    "深证",
+    "纳斯达克",
+    "美股"
+  ]
+}

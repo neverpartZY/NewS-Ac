@@ -1,0 +1,9 @@
+{
+  "description": "企业微信群机器人 webhook 地址清单。每个群在企业微信里手动添加「群机器人」后，把 webhook_url 填到下面。真实文件 webhook_groups.json 不入库。",
+  "groups": [
+    {
+      "name": "示例群",
+      "webhook_url": "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=YOUR_KEY"
+    }
+  ]
+}

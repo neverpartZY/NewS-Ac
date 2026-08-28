@@ -1,0 +1,6 @@
+{
+  "description": "日报邮件收件人列表。真实文件 email_recipients.json 不入库。",
+  "recipients": [
+    "user@example.com"
+  ]
+}

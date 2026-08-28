@@ -1,0 +1,16 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+data/
+reports/
+logs/
+
+# OMC 运行时状态 + 测试缓存（不入库）
+.omc/
+.pytest_cache/
+
+# 含真实 key / PII，不入库（用 .example 占位）
+config/webhook_groups.json
+config/email_recipients.json
+references/
