@@ -5,9 +5,12 @@
 """
 import json
 import os
+import re
 import time
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
+from html import unescape as _html_unescape
 from urllib.parse import parse_qs, urlparse
 
 import config
@@ -122,4 +125,47 @@ def collect(days=3):
         except Exception as e:  # noqa: BLE001
             print(f"  [gzh] {g['name']} 采集失败: {e}")
         time.sleep(0.3)
+    return docs
+
+
+# ---- 正文抓取（weixinzs 接口不带摘要，当天热点必须有正文才能过相关性判断/进日报）----
+
+_UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+       "(KHTML, like Gecko) Chrome/120.0 Safari/537.36")
+
+
+def _html_to_text(html):
+    """微信文章 HTML → 纯文本（去 script/style/标签、解实体、压空白）。"""
+    html = re.sub(r"<script[\s\S]*?</script>|<style[\s\S]*?</style>", "", html)
+    html = re.sub(r"<[^>]+>", " ", html)
+    text = _html_unescape(html)
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def fetch_content(url, timeout=15):
+    """抓取公众号文章正文纯文本（前 800 字）。失败返回空串（不抛异常）。"""
+    if not url:
+        return ""
+    try:
+        opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))  # 微信直连
+        req = urllib.request.Request(url, headers={"User-Agent": _UA})
+        raw = opener.open(req, timeout=timeout).read().decode("utf-8", "replace")
+    except Exception:  # noqa: BLE001
+        return ""
+    i = raw.find("js_content")  # 微信正文容器，从其后的标签内容取正文
+    if i > 0:
+        raw = raw[i:]
+    return _html_to_text(raw)[:800]
+
+
+def enrich_same_day(docs, workers=10):
+    """给当天的公众号候选抓正文填 snippet（只抓当天，控制抓取量）。"""
+    today = config.today_str()
+    todo = [d for d in docs if d.engine == "gzh" and (d.date or "")[:10] == today and d.url]
+    if not todo:
+        return docs
+    with ThreadPoolExecutor(max_workers=workers) as ex:
+        for d, t in zip(todo, ex.map(fetch_content, [d.url for d in todo])):
+            if t:
+                d.snippet = t[:500]
     return docs

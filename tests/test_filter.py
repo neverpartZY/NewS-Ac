@@ -46,6 +46,13 @@ def test_date_in_window_chinese():
     assert f.date_in_window("3周前", 3) == (True, False)    # 3周前 → 超窗口丢弃
 
 
+def test_date_filter_drops_undated():
+    # 无日期 = 时效不可证（引擎 7 天窗口会放进旧闻）→ 宁缺毋滥直接丢
+    d = Candidate(title="某再生塑料新闻", url="https://e.com/a")
+    kept, dropped = f.date_filter([d], 3)
+    assert kept == [] and dropped == 1
+
+
 def test_has_cjk():
     assert f.has_cjk("再生塑料价格") is True
     assert f.has_cjk("rPET price today") is False

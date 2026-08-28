@@ -83,8 +83,53 @@ def _extract_points(docs, item_name, pmin, pmax):
     return points
 
 
+def clean_price_points(points, days=None):
+    """价格点收敛（用户 2026-08-28 定的三条规则，保持多源对照、去噪）：
+
+    1. 只留最近 PRICE_DAYS(2) 天的价格点，过期直接丢；
+    2. 同品种取中位数，偏离 >30% 的按离群值丢弃（解决 3900 与 7922 并存）；
+    3. 每品种每天最多 2 行，且同一天不重复同一来源。
+    """
+    days = config.PRICE_DAYS if days is None else days
+    today = config.today_local()
+    # 规则1：时效
+    recent = []
+    for p in points:
+        dt = config.parse_date(p.get("date", ""))
+        if dt and (today - dt).days <= days:
+            recent.append(p)
+    # 规则2：离群值（按品种分组）
+    by_item = {}
+    for p in recent:
+        by_item.setdefault(p.get("item", ""), []).append(p)
+    survivors = []
+    for pts in by_item.values():
+        pairs = []
+        for p in pts:
+            try:
+                pairs.append((p, float(str(p.get("price", "")).replace(",", ""))))
+            except (ValueError, TypeError):
+                continue
+        if not pairs:
+            continue
+        vals = sorted(v for _, v in pairs)
+        n = len(vals)
+        median = vals[n // 2] if n % 2 else (vals[n // 2 - 1] + vals[n // 2]) / 2
+        if median > 0:
+            pairs = [(p, v) for p, v in pairs if abs(v - median) / median <= 0.30]
+        # 规则3：每品种每天最多 2 行不同来源（日期新优先）
+        per_day = {}
+        for p, _ in sorted(pairs, key=lambda pv: pv[0].get("date", ""), reverse=True):
+            bucket = per_day.setdefault(p.get("date", ""), [])
+            if len(bucket) < 2 and p.get("source") not in {b.get("source") for b in bucket}:
+                bucket.append(p)
+        for bucket in per_day.values():
+            survivors.extend(bucket)
+    return survivors
+
+
 def collect():
-    """采集全部价格品种，返回 list[价格点 dict]。"""
+    """采集全部价格品种，返回收敛后的 list[价格点 dict]。"""
     out = []
     for item in config.PRICE_ITEMS:
         q = item.get("query", "")
@@ -93,4 +138,4 @@ def collect():
         docs += serper_engine.search(q, config.PRICE_DAYS, lang="zh")
         docs += tavily_engine.search(q, config.PRICE_DAYS, lang="zh")
         out += _extract_points(docs, item.get("name", ""), pmin, pmax)
-    return out
+    return clean_price_points(out)

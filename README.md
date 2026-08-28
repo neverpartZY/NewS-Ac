@@ -1,6 +1,6 @@
 # 塑料回收新闻采集 + AI 加工系统
 
-多渠道采集「塑料回收」新闻 → AI 筛选/语义去重/加工 → 生成 3 份高质量日报 → 四路推送。
+多渠道采集「塑料回收」新闻 → AI 筛选/语义去重/加工 → 产出 3 份高质量日报 + 标准运行清单（发送由外部按清单执行）。
 
 基于旧 `plastic-daily-report-skill` 重构：保留其打磨过的领域数据（词表/任务矩阵/源站/价格），
 砍掉架构包袱（AFP 三层/覆盖率门禁/模板堆砌），把语义去重和报告质量两个薄弱环节升级。
@@ -36,12 +36,12 @@ python -m venv .venv
 ## 运行
 
 ```powershell
-.\.venv\Scripts\python.exe main.py --once        # 完整一轮：采集→过滤→去重→加工→生成→落库→推送
-.\.venv\Scripts\python.exe main.py --dry-run     # 只采集打印，不落库不推送
-.\.venv\Scripts\python.exe main.py --no-push     # 落库+生成日报，不推送
+.\.venv\Scripts\python.exe main.py --once        # 完整一轮：采集→过滤→去重→加工→生成→落库（默认不推送）
+.\.venv\Scripts\python.exe main.py --dry-run     # 只采集打印，不落库
 .\.venv\Scripts\python.exe main.py --full        # 跑全量 auto 任务（默认只跑 D1 高频）
-.\.venv\Scripts\python.exe main.py --weekly      # 周报：从已收录列表取过去 7 天精选（不重新采集）
-.\.venv\Scripts\python.exe main.py --monthly     # 月报：从已收录列表取过去 30 天汇总（不重新采集）
+.\.venv\Scripts\python.exe main.py --weekly      # 周报：过去 7 天精选（不重新采集）
+.\.venv\Scripts\python.exe main.py --monthly     # 月报：过去 30 天汇总（不重新采集）
+.\.venv\Scripts\python.exe main.py --push        # （选装）内置四通道推送——默认关闭，发送属外部职责
 ```
 
 ## 验证
@@ -60,7 +60,7 @@ main.py --once
   ├─ 加工   refine.py       逐条：中文标题/摘要/分类/细分/重要性/标签
   ├─ 生成   report.py       LLM 主编撰写 综合 / 化学循环 / 再生PET 三份日报
   ├─ 落库   storage.py      SQLite「已收录列表」+ embedding
-  └─ 推送   push/*          邮件 / 企业微信 / IMA 知识库 / 公众号草稿箱
+  └─ 产物   reports/        3 份日报 .md + run_daily_<date>.json 标准清单（发送方按清单执行；push/* 为 --push 选装）
 ```
 
 ## 目录

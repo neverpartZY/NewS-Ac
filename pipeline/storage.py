@@ -119,6 +119,23 @@ def load_articles(since_date=""):
     return out
 
 
+def update_summary(h, summary_zh):
+    """回填摘要（公众号正文补齐用）。"""
+    with _conn() as conn:
+        conn.execute("UPDATE articles SET summary_zh = ? WHERE url_hash = ?", (summary_zh, h))
+        conn.commit()
+
+
+def gzh_needing_content(since_date):
+    """近 N 天收录的公众号条目中摘要缺失/过短的，返回 [(url_hash, url)]。"""
+    with _conn() as conn:
+        return conn.execute(
+            "SELECT url_hash, url FROM articles WHERE source='gzh' "
+            "AND (summary_zh IS NULL OR length(summary_zh) < 50) AND collected_at >= ?",
+            (since_date,),
+        ).fetchall()
+
+
 def count():
     with _conn() as conn:
         return conn.execute("SELECT COUNT(*) FROM articles").fetchone()[0]

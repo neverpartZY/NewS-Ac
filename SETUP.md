@@ -68,20 +68,22 @@ copy config\email_recipients.example.json config\email_recipients.json
 
 # 5. 自检 + 跑
 .venv\Scripts\python.exe main.py --dry-run        # 只采集打印，验证 key/网络/依赖
-.venv\Scripts\python.exe main.py --no-push        # 完整跑一轮（不推送），看 reports/ 成品
-.venv\Scripts\python.exe main.py --once           # 正式（含推送）
+.venv\Scripts\python.exe main.py --once           # 正式出报（默认不推送），产物在 reports/
+.venv\Scripts\python.exe main.py --push           # （选装）内置四通道推送
 .venv\Scripts\python.exe -m pytest -q             # 跑单测
 ```
 
 ---
 
-## 四、推送四路各自的前置
+## 四、标准输出与发送分工
+
+**程序只负责产出**（`reports/`）：`<报告名>_<日期>.md` ×N + **标准运行清单 `run_<period>_<日期>.json`**（`status` / `reports` 路径映射 / `stats` / `engines`）。外部发送方只读清单文件：`status=ok` → 逐个发送 `reports` 里的 markdown；`status=alert_no_collection` → 今日采集失效、无内容可发。发送由外部执行（服务器 OpenClaw / 团队既有通道），程序内置四通道保留为选装（`--push`），各自前置：
 
 | 通道 | 实现 | 前置 |
 |---|---|---|
 | 邮件 | Resend HTTP | `RESEND_API_KEY` + `FROM_EMAIL` + `config/email_recipients.json` |
 | 企业微信 | webhook 短消息（Python 直接发，零授权）+ 智能文档交接文件（服务器 OpenClaw 的 wecom_mcp 创建，doc 品类） | `config/webhook_groups.json`；智能文档待服务器 OpenClaw 配置后执行 `reports/*_wecom_handoff.json` |
-| IMA 知识库 | IMA OpenAPI 直连（create_media → COS → add_knowledge） | `IMA_OPENAPI_CLIENTID/APIKEY` 或 `~/.config/ima/` |
+| IMA 知识库 | **交接模式（唯一路径）**：生成 `reports/*_ima_handoff.json`，由服务器 OpenClaw 的 ima-mcp（团队账号）上传 | `.env` 配 `IMA_KB_ID`/`IMA_FOLDER_ID`（默认国嘉基业·LLM Wiki + 日报文件夹）；服务器侧 ima-mcp 连接器需 connected |
 | 公众号草稿箱 | **全自动**：scp + ssh 到白名单服务器跑 `publish_article_multi.py` 建草稿（只建草稿不发表） | `.env` 配 `WECHAT_SSH_KEY`（私钥路径）；无私钥自动降级为交接文件模式。IP 白名单由团队维护 |
 
 每路独立可插拔：缺 key/前置未就绪 → 打印告警跳过，不阻塞其它路。

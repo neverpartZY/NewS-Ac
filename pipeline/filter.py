@@ -76,11 +76,8 @@ def date_filter(docs, days):
         if ok and not in_window:
             dropped += 1
             continue
-        if title and url:
-            d.nd_date = True
-            kept.append(d)
-        else:
-            dropped += 1
+        # 无日期：时效不可证。引擎按 7 天窗口返回，放行会放进旧闻——宁缺毋滥，直接丢
+        dropped += 1
     return kept, dropped
 
 

@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
-"""流水线编排：采集 → 过滤 → 去重 → 加工 → 生成 → 落库 → 推送。"""
+"""流水线编排：采集 → 过滤 → 去重 → 加工 → 生成 → 落库（→ 选装推送）。"""
+import json
+
 import config
 from datetime import timedelta
 
@@ -54,7 +56,9 @@ def collect(freqs):
         for c in task_docs:
             c.scope_hint = hint
         docs += task_docs
-    docs += _track("gzh", gzh.collect(config.FRESH_DAYS))
+    gzh_docs = _track("gzh", gzh.collect(config.FRESH_DAYS))
+    gzh.enrich_same_day(gzh_docs)  # 当天公众号文章抓正文——相关性判断/报告编辑需要内容，不能裸标题
+    docs += gzh_docs
     docs += _track("site", source_site.collect())
     price_points = price.collect()
     return _collapse(docs), price_points, stats
@@ -100,8 +104,8 @@ def _scope_filter(articles, report_name):
     return articles  # 综合 = 全部
 
 
-def run(dry_run=False, do_push=True, freqs=None):
-    """跑一轮完整流水线。返回汇总 dict。"""
+def run(dry_run=False, do_push=False, freqs=None):
+    """跑一轮完整流水线（默认只出日报不推送；do_push=True 时走四通道选装）。"""
     summary = {}
     # 1. 采集
     docs, price_points, stats = collect(freqs)
@@ -120,6 +124,8 @@ def run(dry_run=False, do_push=True, freqs=None):
             alert = _alert_markdown(stats, failed, skipped, config.today_str())
             st = push_mod.email.send_alert(f"⚠️ 采集异常告警 · {config.today_str()}", alert)
             print(f"[alert] 邮件告警: {st}")
+        if not dry_run:
+            _write_manifest("daily", summary, {}, config.today_str())
         return summary
 
     if failed:
@@ -165,6 +171,7 @@ def run(dry_run=False, do_push=True, freqs=None):
         out = config.REPORT_DIR / f"{rname}_{date_str}.md"
         out.write_text(md, encoding="utf-8")
         print(f"[report] {rname} -> {out}")
+    _write_manifest("daily", summary, reports, date_str)
 
     # 7. 推送
     if do_push:
@@ -185,13 +192,34 @@ def run(dry_run=False, do_push=True, freqs=None):
 
 def _save_push_ledger(date_str, push_results):
     """推送状态台账落盘，便于排障（data/push_ledger_<日期>.json）。"""
-    import json
     ledger = config.DATA_DIR / f"push_ledger_{date_str}.json"
     ledger.write_text(json.dumps(push_results, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
-def run_periodic(period, do_push=True):
-    """生成周报/月报：从已收录列表取过去 N 天数据，精选提炼（不重新采集）。"""
+def _write_manifest(period, summary, reports, date_str):
+    """标准化产物清单——外部发送方的唯一对接点（用户 2026-08-28 定：输出标准化，发送走外部）。
+
+    外部只需读 reports/run_<period>_<date>.json：
+      status=ok           → 逐个 reports 里的 markdown 发送
+      status=alert_no_collection → 今日采集失效告警，无内容可发
+    """
+    manifest = {
+        "period": period,
+        "date": date_str,
+        "generated_at": config.now_local_str(),
+        "status": summary.get("status", "ok"),
+        "reports": {name: str(config.REPORT_DIR / f"{name}_{date_str}.md") for name in reports},
+        "stats": {k: v for k, v in summary.items() if isinstance(v, (int, float))},
+        "engines": summary.get("engines", {}),
+    }
+    out = config.REPORT_DIR / f"run_{period}_{date_str}.json"
+    out.write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
+    print(f"[manifest] {out}")
+    return out
+
+
+def run_periodic(period, do_push=False):
+    """生成周报/月报：从已收录列表取过去 N 天数据，精选提炼（不重新采集，默认不推送）。"""
     days = 7 if period == "weekly" else 30
     since = (config.today_local() - timedelta(days=days)).strftime("%Y-%m-%d")
     articles = storage.load_articles(since_date=since)
@@ -206,6 +234,7 @@ def run_periodic(period, do_push=True):
         out = config.REPORT_DIR / f"{rname}_{date_str}.md"
         out.write_text(md, encoding="utf-8")
         print(f"[{period}] {rname}（{len(subset)} 条）-> {out.name}")
+    _write_manifest(period, {"articles": len(articles)}, reports, date_str)
     if do_push:
         push_results = push_mod.push_all(reports, date_str)
         _save_push_ledger(date_str, push_results)
