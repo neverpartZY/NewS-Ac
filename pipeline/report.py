@@ -89,3 +89,49 @@ def generate(report_name, articles, price_points=None):
     if isinstance(text, dict) or not text.strip():
         return f"# ♻️ {report_name}\n{date_str}\n\n（生成失败）\n\n{cands}\n"
     return text.strip()
+
+
+WEEKLY_SYS = (
+    "你是「塑料循环经济周报」AI 主编，读者是「一周看一次、抓重点」的行业人士。\n"
+    "根据本周采集的所有新闻（已去重），写一份周报。要求：\n"
+    "1. 全程简体中文。\n"
+    "2. 本周综述：300 字内，本周趋势判断。\n"
+    "3. 本周重点 Top 20~30：按重要度排序，每条 = 一句话概述 + [查看原文](URL) + 日期；"
+    "同一事件的多篇报道合并成一条（一条只讲一个事件，禁止拼接不同事件）。\n"
+    "4. 价格趋势：本周价格变化（对比周初/周末，可附参考价格表）。\n"
+    "5. 下周关注：政策窗口 + 事件预告。\n"
+    "6. 只基于给定候选，不得编造；直接输出 Markdown，不要前言后记。"
+)
+
+MONTHLY_SYS = (
+    "你是「塑料循环经济月报」AI 主编。根据本月采集的所有新闻，写一份月报。要求：\n"
+    "1. 全程简体中文。\n"
+    "2. 本月综述：500 字内，本月趋势判断。\n"
+    "3. 本月重点：按重要度排序，每条 = 一句话概述 + [查看原文](URL) + 日期，同一事件合并。\n"
+    "4. 数据与价格趋势。\n"
+    "5. 下月展望。\n"
+    "6. 只基于给定候选，不得编造；直接输出 Markdown，不要前言后记。"
+)
+
+
+def generate_periodic(report_name, articles, price_points, period):
+    """生成周报/月报（从已收录列表取数，不做增量采集）。"""
+    date_str = config.today_str()
+    if not articles and not price_points:
+        return f"# ♻️ {report_name}\n{date_str}\n\n本期无新增。\n"
+    arts = sorted(articles, key=lambda a: -a.importance)[:80]
+    cands = _format_candidates(arts)
+    price_md = _price_table(price_points or [])
+    sys_prompt = WEEKLY_SYS if period == "weekly" else MONTHLY_SYS
+    user = (
+        f"报告类型：{report_name}\n日期：{date_str}\n\n"
+        f"候选新闻（本周/本月累计，供精选）：\n{cands}\n\n"
+        f"参考价格表：\n{price_md or '（无价格数据）'}\n"
+    )
+    text = llm.chat([
+        {"role": "system", "content": sys_prompt},
+        {"role": "user", "content": user},
+    ], temperature=0.3, max_tokens=5000)
+    if isinstance(text, dict) or not text.strip():
+        return f"# ♻️ {report_name}\n{date_str}\n\n（生成失败）\n\n{cands}\n"
+    return text.strip()

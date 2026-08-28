@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 """流水线编排：采集 → 过滤 → 去重 → 加工 → 生成 → 落库 → 推送。"""
 import config
+from datetime import timedelta
+
 from . import dedup, filter as f, linkcheck, refine, report, storage
 from . import push as push_mod
 from .engines import gzh, price, serper, source_site, tavily
@@ -126,3 +128,28 @@ def _save_push_ledger(date_str, push_results):
     import json
     ledger = config.DATA_DIR / f"push_ledger_{date_str}.json"
     ledger.write_text(json.dumps(push_results, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def run_periodic(period, do_push=True):
+    """生成周报/月报：从已收录列表取过去 N 天数据，精选提炼（不重新采集）。"""
+    days = 7 if period == "weekly" else 30
+    since = (config.today_local() - timedelta(days=days)).strftime("%Y-%m-%d")
+    articles = storage.load_articles(since_date=since)
+    price_points = price.collect()
+    date_str = config.today_str()
+    names = REPORT_NAMES if period == "weekly" else ["月报"]
+    reports = {}
+    for rname in names:
+        subset = _scope_filter(articles, rname)
+        md = report.generate_periodic(rname, subset, price_points, period)
+        reports[rname] = md
+        out = config.REPORT_DIR / f"{rname}_{date_str}.md"
+        out.write_text(md, encoding="utf-8")
+        print(f"[{period}] {rname}（{len(subset)} 条）-> {out.name}")
+    if do_push:
+        push_results = push_mod.push_all(reports, date_str)
+        _save_push_ledger(date_str, push_results)
+        for rname, chans in push_results.items():
+            for chan, st in chans.items():
+                print(f"[push] {rname} · {chan}: {st.get('status')} {st.get('reason', '')}")
+    return {"period": period, "articles": len(articles), "reports": list(reports.keys())}

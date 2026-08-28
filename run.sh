@@ -12,4 +12,4 @@ else
 fi
 
 mkdir -p logs
-"$PY" main.py --once >> "logs/daily_$(date +%Y%m%d).log" 2>&1
+"$PY" main.py "${@:---once}" >> "logs/daily_$(date +%Y%m%d).log" 2>&1

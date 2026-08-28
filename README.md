@@ -40,6 +40,8 @@ python -m venv .venv
 .\.venv\Scripts\python.exe main.py --dry-run     # 只采集打印，不落库不推送
 .\.venv\Scripts\python.exe main.py --no-push     # 落库+生成日报，不推送
 .\.venv\Scripts\python.exe main.py --full        # 跑全量 auto 任务（默认只跑 D1 高频）
+.\.venv\Scripts\python.exe main.py --weekly      # 周报：从已收录列表取过去 7 天精选（不重新采集）
+.\.venv\Scripts\python.exe main.py --monthly     # 月报：从已收录列表取过去 30 天汇总（不重新采集）
 ```
 
 ## 验证
@@ -127,7 +129,9 @@ crontab -e
 
 # 若 cron 支持 CRON_TZ（cronie/vixie-cron），可显式指定：
 CRON_TZ=Asia/Shanghai
-30 7 * * * /opt/NewS-Ac/run.sh
+30 7 * * * /opt/NewS-Ac/run.sh --once                          # 每天 07:30 日报
+30 8 * * 6 /opt/NewS-Ac/run.sh --weekly                        # 每周六 08:30 周报
+30 9 28-31 * * [ "$(date -d tomorrow +%d)" = "01" ] && /opt/NewS-Ac/run.sh --monthly   # 月末 09:30 月报
 ```
 
 ### 4. （可选）systemd timer

@@ -21,7 +21,20 @@ def main():
     ap.add_argument("--dry-run", action="store_true", help="只采集打印，不落库不推送")
     ap.add_argument("--no-push", action="store_true", help="不推送")
     ap.add_argument("--full", action="store_true", help="跑全量 auto 任务（否则只跑 D1）")
+    ap.add_argument("--weekly", action="store_true", help="生成周报（过去7天精选，不重新采集）")
+    ap.add_argument("--monthly", action="store_true", help="生成月报（过去30天汇总，不重新采集）")
     args = ap.parse_args()
+
+    if args.weekly:
+        result = runner.run_periodic("weekly", do_push=not args.no_push)
+        print("\n=== 汇总 ===")
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return
+    if args.monthly:
+        result = runner.run_periodic("monthly", do_push=not args.no_push)
+        print("\n=== 汇总 ===")
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return
 
     freqs = None if args.full else {"D1"}
     result = runner.run(dry_run=args.dry_run, do_push=not args.no_push, freqs=freqs)
