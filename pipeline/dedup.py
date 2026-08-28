@@ -43,41 +43,42 @@ def _embed_docs(docs):
 
 
 def semantic_dedup(docs):
-    """对候选 docs 做语义去重（对已收录列表）。返回 (keep, duplicates)。
+    """对候选 docs 做语义去重：对「已收录列表」+「本轮已保留的候选」双重比对。
 
+    - 同轮内不同来源报道同一事件（不同 URL）也会被拦（E1 同日去重）。
     - embedding 失败：保守保留（不因去重能力缺失而丢新闻）。
     - sim ≥ 0.88 判重；0.72~0.88 交 LLM 仲裁；< 0.72 新内容。
     """
     if not docs:
         return [], []
     stored = storage.load_for_dedup()
-    stored_vecs = np.array([s["embedding"] for s in stored if s.get("embedding") is not None],
-                           dtype=np.float32) if stored else np.empty((0, 0), dtype=np.float32)
-    stored_meta = [s for s in stored if s.get("embedding") is not None]
+    vecs = [s["embedding"] for s in stored if s.get("embedding") is not None]
+    metas = [{"title_zh": s.get("title_zh", ""), "title": s.get("title", ""),
+              "summary_zh": s.get("summary_zh", "")} for s in stored if s.get("embedding") is not None]
 
     keep, dups = [], []
     for d in docs:
         vec = d.embedding
-        if vec is None or stored_vecs.shape[0] == 0:
+        if vec is None:
             keep.append(d)
             continue
         q = np.asarray(vec, dtype=np.float32)
-        sims = _cosine(q, stored_vecs)
-        if sims.size == 0:
-            keep.append(d)
-            continue
-        best_idx = int(np.argmax(sims))
-        best_sim = float(sims[best_idx])
-        if best_sim >= config.DEDUP_HIGH:
-            d.dup_sim = best_sim
-            dups.append(d)
-            continue
-        if best_sim >= config.DEDUP_LOW:
-            if _arbitrate(d, stored_meta[best_idx]):
+        if vecs:
+            sims = _cosine(q, np.array(vecs, dtype=np.float32))
+            best_idx = int(np.argmax(sims))
+            best_sim = float(sims[best_idx])
+            if best_sim >= config.DEDUP_HIGH:
                 d.dup_sim = best_sim
                 dups.append(d)
                 continue
+            if best_sim >= config.DEDUP_LOW and _arbitrate(d, metas[best_idx]):
+                d.dup_sim = best_sim
+                dups.append(d)
+                continue
+        # 保留：同时加入比对集合，供同轮后续候选做去重
         keep.append(d)
+        vecs.append(vec)
+        metas.append({"title_zh": d.title, "title": d.title, "summary_zh": d.snippet or ""})
     return keep, dups
 
 

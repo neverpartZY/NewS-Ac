@@ -33,3 +33,14 @@ def test_cosine_semantic_threshold_shape():
     sims = dedup._cosine(q, m)
     assert sims.shape == (10,)
     assert ((sims >= -1.0) & (sims <= 1.0)).all()
+
+
+def test_semantic_dedup_intra_run(monkeypatch):
+    # 同轮内两个相似候选（不同 URL）应去重，即使库为空
+    from pipeline.models import Candidate
+    monkeypatch.setattr(storage, "load_for_dedup", lambda: [])
+    v = [1.0, 0.0, 0.0]
+    a = Candidate(title="惠城环保投产", url="http://a.com", embedding=v)
+    b = Candidate(title="惠城环保投产（另一来源）", url="http://b.com", embedding=v)
+    keep, dups = dedup.semantic_dedup([a, b])
+    assert len(keep) == 1 and len(dups) == 1

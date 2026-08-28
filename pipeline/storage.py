@@ -3,7 +3,7 @@
 import hashlib
 import json
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import numpy as np
 
@@ -122,6 +122,15 @@ def load_articles(since_date=""):
 def count():
     with _conn() as conn:
         return conn.execute("SELECT COUNT(*) FROM articles").fetchone()[0]
+
+
+def prune(days=30):
+    """删除 collected_at 早于 N 天的条目，防止库无限增长拖慢语义去重。返回删除条数。"""
+    cutoff = (config.today_local() - timedelta(days=days)).strftime("%Y-%m-%d")
+    with _conn() as conn:
+        cur = conn.execute("DELETE FROM articles WHERE collected_at < ?", (cutoff,))
+        conn.commit()
+        return cur.rowcount
 
 
 def recent_urls(days=14):

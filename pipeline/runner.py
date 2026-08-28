@@ -108,7 +108,21 @@ def run(dry_run=False, do_push=True, freqs=None):
     if do_push:
         push_results = push_mod.push_all(reports, date_str)
         summary["push"] = push_results
+        _save_push_ledger(date_str, push_results)
         for rname, chans in push_results.items():
             for chan, st in chans.items():
                 print(f"[push] {rname} · {chan}: {st.get('status')} {st.get('reason', '')}")
+
+    # 8. 维护：清理 30 天前的已收录条目
+    pruned = storage.prune(days=30)
+    if pruned:
+        summary["pruned"] = pruned
+        print(f"[maint] 清理 {pruned} 条 30 天前旧闻")
     return summary
+
+
+def _save_push_ledger(date_str, push_results):
+    """推送状态台账落盘，便于排障（data/push_ledger_<日期>.json）。"""
+    import json
+    ledger = config.DATA_DIR / f"push_ledger_{date_str}.json"
+    ledger.write_text(json.dumps(push_results, ensure_ascii=False, indent=2), encoding="utf-8")
