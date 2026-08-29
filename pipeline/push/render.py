@@ -172,7 +172,7 @@ def _periodic_item(line):
     if m:
         title, desc = m.group(1).strip(), m.group(2).strip()
     else:
-        title, desc = body[:48], body[48:].strip()
+        title, desc = "", body  # 无粗体标题：不硬切分（此前 body[:48] 会把句子腰斩）
     return title, desc, links
 
 
@@ -215,17 +215,20 @@ def _render_periodic_body(lines, i):
         m = re.match(r"^(\d+)\.\s", s)
         if m:
             title, desc, links = _periodic_item(s)
+            badge = (f'<span style="display:inline-block;min-width:24px;height:24px;line-height:24px;text-align:center;'
+                     f'background:{ACCENT_BLUE};color:#fff;border-radius:50%;font-size:13px;font-weight:700;'
+                     f'margin-right:9px;vertical-align:1px;">{m.group(1)}</span>')
+            indent = "33px" if title else "0"
+            head = (f'<div style="margin-bottom:6px;">{badge}'
+                    f'<span style="font-size:16px;font-weight:700;color:{DEEP_BLUE};">{_plain(title)}</span></div>'
+                    ) if title else ""
+            mid = (f'<div style="font-size:15px;line-height:1.9;letter-spacing:0.3px;color:{BODY_GRAY};'
+                   f'margin:0 0 0 {indent};">{badge}{_links(desc)}</div>') if desc else ""
             out.append(
                 '<div style="margin:14px 0;background:#fff;border:1px solid ' + CARD_BORDER + ';'
                 'border-radius:10px;padding:16px 18px;">'
-                '<div style="margin-bottom:6px;">'
-                f'<span style="display:inline-block;min-width:24px;height:24px;line-height:24px;text-align:center;'
-                f'background:{ACCENT_BLUE};color:#fff;border-radius:50%;font-size:13px;font-weight:700;'
-                f'margin-right:9px;vertical-align:1px;">{m.group(1)}</span>'
-                f'<span style="font-size:16px;font-weight:700;color:{DEEP_BLUE};">{_plain(title)}</span></div>'
-                + (f'<div style="font-size:15px;line-height:1.9;letter-spacing:0.3px;color:{BODY_GRAY};'
-                   f'margin:2px 0 0 33px;">{_links(desc)}</div>' if desc else "")
-                + (f'<div style="margin-left:33px;">{_pills(links)}</div>' if links else "")
+                + head + mid
+                + (f'<div style="margin-left:{indent};">{_pills(links)}</div>' if links else "")
                 + '</div>')
             i += 1
             continue
