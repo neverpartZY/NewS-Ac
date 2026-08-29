@@ -14,7 +14,7 @@ def _handoff(report_name, markdown, date_str):
     out = config.REPORT_DIR / f"{report_name}_{date_str}_ima_handoff.json"
     out.write_text(json.dumps({
         "tool": "ima-mcp 上传（服务器 OpenClaw，团队账号）",
-        "kb_id": config.get_key("IMA_KB_ID") or "7457220757303832",
+        "kb_id": config.get_key("IMA_KB_ID") or "cbS6_lBGSoDYC6oH9t2e-7yN6SbUQkGodQAstAulh5s=",
         "folder_id": config.get_key("IMA_FOLDER_ID") or "7471548801773576",
         "file_name": f"{report_name}_{date_str}.md",
         "content_markdown": markdown,

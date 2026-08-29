@@ -18,7 +18,7 @@ def test_send_report_always_handoff(monkeypatch, tmp_path):
     assert r["status"] == "handoff"
     p = tmp_path / "综合日报_2026-08-28_ima_handoff.json"
     data = json.loads(p.read_text(encoding="utf-8"))
-    assert data["kb_id"] == "7457220757303832"       # 国嘉基业·LLM Wiki
+    assert data["kb_id"] == "cbS6_lBGSoDYC6oH9t2e-7yN6SbUQkGodQAstAulh5s="  # 国嘉基业·LLM Wiki（实测有效 ID）
     assert data["folder_id"] == "7471548801773576"   # 日报文件夹
     assert data["file_name"] == "综合日报_2026-08-28.md"
     assert data["content_markdown"] == MD
