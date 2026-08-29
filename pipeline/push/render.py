@@ -223,7 +223,7 @@ def _render_periodic_body(lines, i):
                     f'<span style="font-size:16px;font-weight:700;color:{DEEP_BLUE};">{_plain(title)}</span></div>'
                     ) if title else ""
             mid = (f'<div style="font-size:15px;line-height:1.9;letter-spacing:0.3px;color:{BODY_GRAY};'
-                   f'margin:0 0 0 {indent};">{badge}{_links(desc)}</div>') if desc else ""
+                   f'margin:0 0 0 {indent};">{("" if title else badge)}{_links(desc)}</div>') if desc else ""
             out.append(
                 '<div style="margin:14px 0;background:#fff;border:1px solid ' + CARD_BORDER + ';'
                 'border-radius:10px;padding:16px 18px;">'
