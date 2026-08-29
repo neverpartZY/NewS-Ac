@@ -16,6 +16,14 @@ SEPARATOR = "rgb(238,241,245)"
 WHITE = "#ffffff"
 
 
+def _links(text):
+    """条目标题内联处理：**加粗剥掉**（保持标题深蓝），[x](url) → 可点链接（月报格式链接内联在条目行）。"""
+    t = html_mod.escape(text)
+    t = re.sub(r"\*\*(.+?)\*\*", r"\1", t)
+    return re.sub(r"\[([^\]]+)\]\(([^)]+)\)",
+                  r'<a href="\2" style="color:' + ACCENT_BLUE + r';text-decoration:none;font-weight:600;">\1</a>', t)
+
+
 def _inline(text):
     """转义 + 粗体（蓝色小标题）+ 链接 → 内联 HTML。"""
     t = html_mod.escape(text)
@@ -118,12 +126,11 @@ def render_html(markdown, report_name="", date_str=""):
             body.append(f'<p style="color:{SMALL_GRAY};font-size:13px;line-height:1.7;">{_inline(s[2:])}</p>')
             in_list = False
         elif re.match(r"^\d+\.\s", s):
-            # 条目标题：深蓝 800 17px
+            # 条目标题：深蓝 800 17px；内联链接可点（月报格式）
             title_txt = re.sub(r"^\d+\.\s*", "", s)
-            title_txt = re.sub(r"\*\*(.+?)\*\*", r"\1", title_txt)
             body.append(f'<div style="margin:18px 0;padding-bottom:16px;border-bottom:1px solid {SEPARATOR};">'
                         f'<div style="font-size:17px;font-weight:800;color:{DEEP_BLUE};margin-bottom:6px;">'
-                        f'{html_mod.escape(title_txt)}</div>')
+                        f'{_links(title_txt)}</div>')
             in_list = True
         elif in_list:
             if "[" in s and "](" in s:
