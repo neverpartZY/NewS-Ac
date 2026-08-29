@@ -171,5 +171,5 @@ def send_report(report_name, markdown, date_str=""):
     if doc:
         result["doc_url"] = doc["url"]
     else:
-        result["handoff"] = write_handoff(report_name, markdown, date_str).name
+        result["handoff"] = str(write_handoff(report_name, markdown, date_str))
     return result
