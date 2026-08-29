@@ -176,5 +176,7 @@ def send_report(report_name, markdown, date_str=""):
         return {"status": "error", "reason": f"建草稿失败: {(err2 or out2)[:200]}"}
 
     # 草稿箱只留最新一篇：删除同账号同标题的旧草稿（best-effort，失败不影响主流程）
-    cleanup = _cleanup_old_drafts(host, key, meta["mp_account"], media_id, meta["title"])
+    account = config.REPORT_MP_MAP.get(report_name, "")
+    title = f"{report_name} · {date_str}"
+    cleanup = _cleanup_old_drafts(host, key, account, media_id, title)
     return {"status": "ok", "media_id": media_id, "cleanup": cleanup}
