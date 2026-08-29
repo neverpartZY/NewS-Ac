@@ -49,6 +49,9 @@ def test_send_report_full_auto(monkeypatch, tmp_path):
     assert sum(1 for c in scp_cmd if c.endswith(".json")) == 1
     ssh_cmd = calls[1]
     assert ssh_cmd[0] == "ssh" and "publish_article_multi.py publish_meta.json" in ssh_cmd[-1]
+    # 草稿箱只留最新一篇：建稿成功后清理同标题旧稿
+    assert calls[2][0] == "scp" and calls[2][-1].endswith("cleanup_drafts.py")
+    assert calls[3][0] == "ssh" and "cleanup_drafts.py feiliao_newview MEDIA_1" in calls[3][-1]
 
 
 def test_send_report_ssh_failure(monkeypatch, tmp_path):

@@ -95,6 +95,26 @@ def _parse_result(text):
     return None
 
 
+_CLEANUP_SCRIPT = Path(__file__).parent / "server_scripts" / "cleanup_drafts.py"
+
+
+def _cleanup_old_drafts(host, key, account, media_id, title):
+    """草稿箱只留最新一篇：删同账号同标题旧草稿（best-effort，失败只记录）。"""
+    try:
+        rc1, o1, e1 = _run(["scp", "-i", key, "-o", "BatchMode=yes",
+                            "-o", "StrictHostKeyChecking=accept-new",
+                            str(_CLEANUP_SCRIPT), f"{host}:/home/ubuntu/"])
+        if rc1 != 0:
+            return f"cleanup scp failed: {(e1 or o1)[:120]}"
+        cmd = f"cd /home/ubuntu && python3 cleanup_drafts.py {account} {media_id} \"{title}\""
+        rc2, o2, e2 = _run(["ssh", "-i", key, "-o", "BatchMode=yes",
+                            "-o", "StrictHostKeyChecking=accept-new", host, cmd])
+        tail = ((o2 or "") + (e2 or "")).strip().splitlines()
+        return tail[-1][:120] if tail else "cleanup done"
+    except Exception as e:  # noqa: BLE001
+        return f"cleanup error: {str(e)[:120]}"
+
+
 def prepare(report_name, markdown, date_str):
     """渲染 HTML + 封面 + publish_meta.json，返回工作目录路径。"""
     html = render.render_html(markdown, report_name, date_str)
@@ -154,4 +174,7 @@ def send_report(report_name, markdown, date_str=""):
     media_id = _parse_result(out2 + err2)
     if rc2 != 0 or not media_id:
         return {"status": "error", "reason": f"建草稿失败: {(err2 or out2)[:200]}"}
-    return {"status": "ok", "media_id": media_id}
+
+    # 草稿箱只留最新一篇：删除同账号同标题的旧草稿（best-effort，失败不影响主流程）
+    cleanup = _cleanup_old_drafts(host, key, meta["mp_account"], media_id, meta["title"])
+    return {"status": "ok", "media_id": media_id, "cleanup": cleanup}
