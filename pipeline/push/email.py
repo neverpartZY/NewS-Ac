@@ -11,7 +11,7 @@ def _send(to, subject, html=None, text=""):
     key = config.get_key("RESEND_API_KEY")
     if not key:
         return {"status": "skip", "reason": "RESEND_API_KEY 未配置"}
-    from_addr = config.get_key("FROM_EMAIL") or "日报 <daily@greenplastic.ai>"
+    from_addr = config.get_key("FROM_EMAIL") or "塑料循环经济情报中心 <daily@greenplastic.ai>"
     body = {"from": from_addr, "to": to, "subject": subject}
     if html:
         body["html"] = html
