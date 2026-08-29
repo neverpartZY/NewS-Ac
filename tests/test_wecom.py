@@ -50,13 +50,14 @@ def test_digest_truncated():
 
 
 def test_send_report_webhook_and_handoff(monkeypatch, tmp_path):
-    """webhook 发短消息（不发全文）+ 生成 smartpage_create 交接文件。"""
+    """CLI 不可用：webhook 短消息（不发全文）+ 生成 smartpage_create 交接文件。"""
     calls = []
 
     def fake_post(url, headers, body, timeout=30):
         calls.append(body)
         return {"errcode": 0}
 
+    monkeypatch.setattr(wecom, "cli_ready", lambda: False)
     monkeypatch.setattr(wecom, "http_post_json", fake_post)
     monkeypatch.setattr(config, "WEBHOOK",
                         {"groups": [{"name": "g1", "webhook_url": "https://w1"},
@@ -64,14 +65,37 @@ def test_send_report_webhook_and_handoff(monkeypatch, tmp_path):
     monkeypatch.setattr(config, "REPORT_DIR", tmp_path)  # 交接文件写到临时目录
 
     r = wecom.send_report("综合日报", SAMPLE, "2026-08-28")
-    assert r["status"] == "ok" and r["sent"] == 2
+    assert r["status"] == "ok_short" and r["sent"] == 2
     # 短消息：含摘要、不含全文
     content = calls[0]["markdown"]["content"]
     assert "PPWR" in content and "完整版见邮件" in content and len(content) < 500
     # 交接文件：smartpage_create 参数规格
-    handoff = Path(r["smartdoc_handoff"])
+    handoff = Path(r["handoff"])
     assert handoff.exists()
     data = json.loads(handoff.read_text(encoding="utf-8"))
     assert data["tool"] == "wecom_mcp.smartpage_create"
     assert "（2026-08-28）" in data["title"]
     assert data["pages"][0]["content_type"] == 1
+
+
+def test_send_report_doc_link(monkeypatch, tmp_path):
+    """CLI 可用：建智能文档 → webhook 只发「标题+摘要+链接」短消息。"""
+    calls = []
+    doc_url = "https://doc.weixin.qq.com/smartpage/a1_TEST"
+
+    def fake_post(url, headers, body, timeout=30):
+        calls.append(body)
+        return {"errcode": 0}
+
+    monkeypatch.setattr(wecom, "cli_ready", lambda: True)
+    monkeypatch.setattr(wecom, "create_doc", lambda p, n: {"url": doc_url, "docid": ""})
+    monkeypatch.setattr(wecom, "http_post_json", fake_post)
+    monkeypatch.setattr(config, "WEBHOOK",
+                        {"groups": [{"name": "g1", "webhook_url": "https://w1"}]})
+    monkeypatch.setattr(config, "REPORT_DIR", tmp_path)
+
+    r = wecom.send_report("综合日报", SAMPLE, "2026-08-28")
+    assert r["status"] == "ok_doc_link" and r["sent"] == 1 and r["doc_url"] == doc_url
+    content = calls[0]["markdown"]["content"]
+    assert doc_url in content and "打开智能文档" in content
+    assert "完整版见邮件" not in content and len(content) < 500
