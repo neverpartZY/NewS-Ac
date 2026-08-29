@@ -208,6 +208,10 @@ def _render_periodic_body(lines, i):
             out.append(f'<p style="color:{SMALL_GRAY};font-size:13px;line-height:1.7;">{_inline(s[2:])}</p>')
             i += 1
             continue
+        if s.startswith("|"):
+            t, i = _table(lines, i)  # 价格表等 markdown 表格（周报/月报也会输出）
+            out.append(t)
+            continue
         m = re.match(r"^(\d+)\.\s", s)
         if m:
             title, desc, links = _periodic_item(s)
