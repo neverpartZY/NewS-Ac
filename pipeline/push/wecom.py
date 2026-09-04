@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""企业微信推送：智能文档链接模式（铁律：任何情况不发全文长文本）。
+"""企业微信推送：智能文档链接模式（铁律：群里禁止一切纯文字消息，每条必带文档链接）。
 
 主路径（服务器已实测 2026-08-29）：
   wecom-cli smartpage import 建智能文档 → 群机器人 webhook 发「标题+摘要+📄链接」短消息
@@ -18,6 +18,7 @@ import tempfile
 from pathlib import Path
 
 import config
+from . import state
 from .base_push import http_post_json
 
 # 服务器 wecom-cli / node 所在目录（不存在时自动跳过注入）
@@ -137,27 +138,38 @@ def _md_path(report_name, markdown, date_str):
 
 
 def send_report(report_name, markdown, date_str=""):
-    """建智能文档（CLI 可用时）→ webhook 发「标题+摘要+链接」短消息。"""
+    """建智能文档（CLI 可用时）→ webhook 发「标题+摘要+链接」。
+
+    铁律（用户 2026-09-03 拍板，绝对禁止）：企微群**不准发纯文字消息**。
+    文档建不出来就什么都不发，状态记 no_doc，由 run.sh 私发邮箱告警，
+    授权恢复后补推。群里出现过的每一条消息都必须带智能文档链接。
+    防重复（push_state）：今日已发过文档链接 → 直接跳过。
+    """
     date_str = date_str or config.today_str()
     groups = config.WEBHOOK.get("groups", [])
     if not groups:
         return {"status": "skip", "reason": "webhook_groups 为空"}
-    digest = _digest(markdown)
 
+    prev = state.get(date_str, report_name, "wecom")
+    if prev and prev.get("status") == "ok_doc_link":
+        return {"status": "skip", "reason": "今日已推送过智能文档链接（push_state 防重复）"}
+
+    digest = _digest(markdown)
     doc = None
     if cli_ready():
         doc = create_doc(_md_path(report_name, markdown, date_str), doc_name(report_name, date_str))
     else:
-        print("  [wecom] wecom-cli 未安装/未授权，降级短消息（授权一次可升级为文档链接）")
+        print("  [wecom] wecom-cli 未安装/未授权 → 群消息不发（纯文字绝对禁止），等授权恢复后补推")
 
-    if doc:
-        content = (f"**♻️ {report_name}（{date_str}）**\n{digest}\n"
-                   f"📄 [打开智能文档]({doc['url']})")
-        status = "ok_doc_link"
-    else:
-        content = f"**♻️ {report_name}（{date_str}）**\n{digest}\n（完整版见邮件）"
-        status = "ok_short"
+    if not doc:
+        # 建不出文档：群里什么都不发。记 no_doc 供 run.sh email_alert 与授权后补推
+        state.record(date_str, report_name, "wecom", status="no_doc")
+        return {"status": "no_doc",
+                "reason": "智能文档创建失败，按铁律不发纯文字，已等授权恢复补推",
+                "handoff": str(write_handoff(report_name, markdown, date_str))}
 
+    content = (f"**♻️ {report_name}（{date_str}）**\n{digest}\n"
+               f"📄 [打开智能文档]({doc['url']})")
     sent = 0
     for g in groups:
         url = g.get("webhook_url", "")
@@ -167,9 +179,5 @@ def send_report(report_name, markdown, date_str=""):
                            {"msgtype": "markdown", "markdown": {"content": content[:4000]}})
         if "__error__" not in r and "__http_error__" not in r:
             sent += 1
-    result = {"status": status, "sent": sent}
-    if doc:
-        result["doc_url"] = doc["url"]
-    else:
-        result["handoff"] = str(write_handoff(report_name, markdown, date_str))
-    return result
+    state.record(date_str, report_name, "wecom", status="ok_doc_link", doc_url=doc["url"])
+    return {"status": "ok_doc_link", "sent": sent, "doc_url": doc["url"]}

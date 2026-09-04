@@ -1,0 +1,15 @@
+{
+  "description": "日报网站注册客户收件人（来源：服务器 /home/ubuntu/ppwr-backend/ppwr.db users 表，2026-09-02 导出）。规则：is_active=1 且有 email，排除 test@example.com 与 @replas.org.cn（后者已在内邮名单，避免重复收）。每日运行前由 server_scripts/export_customers.py 从 ppwr.db 自动刷新。enabled=false 可整体停发客户。",
+  "enabled": true,
+  "recipients": [
+    "lichangjiang@pinnuos.com",
+    "81814918@qq.com",
+    "gwz8147773472@gmail.com",
+    "joe.wang@8sourcing.com",
+    "1023537774@qq.com",
+    "Nancy.xu@chinaseven.com",
+    "gaoxw@caihuapak.com",
+    "15883976190@163.com",
+    "417526092@qq.com"
+  ]
+}

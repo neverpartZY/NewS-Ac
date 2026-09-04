@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """邮件推送（Resend HTTP API），正文用精美 HTML 排版 + 纯文本兜底。"""
 import config
-from . import render
+from . import render, state
 from .base_push import http_post_json
 
 HOST = "https://api.resend.com/emails"
@@ -24,12 +24,38 @@ def _send(to, subject, html=None, text=""):
 
 
 def send_report(report_name, markdown, date_str=""):
-    """按 config 里的收件人列表群发一份日报。"""
+    """按 config 里的收件人列表群发一份日报。
+
+    内部团队（email_recipients.json）与网站注册客户（email_recipients_customers.json）
+    分两次 Resend 调用发送：客户列表失败不影响内部投递，两边状态都能观测。
+    防重复（push_state）：今日该报告已成功发过邮件 → 跳过（手动重跑不会重复轰炸收件人）。
+    """
+    date_str = date_str or config.today_str()
     recipients = config.EMAIL.get("recipients", [])
     if not recipients:
         return {"status": "skip", "reason": "收件人为空"}
-    subject = f"♻️ {report_name} · {date_str or '今日'}"
-    return _send(recipients, subject, render.render_html(markdown, report_name), markdown)
+
+    prev = state.get(date_str, report_name, "email")
+    if prev and prev.get("status") == "ok":
+        result = {"status": "skip", "reason": "今日已推送过邮件（push_state 防重复）"}
+    else:
+        subject = f"♻️ {report_name} · {date_str or '今日'}"
+        result = _send(recipients, subject, render.render_html(markdown, report_name), markdown)
+        state.record(date_str, report_name, "email", status=result.get("status"))
+
+    customers = config.CUSTOMER_EMAIL.get("recipients", [])
+    if config.CUSTOMER_EMAIL.get("enabled", True) and customers:
+        # 客户单独一封（同一排版），不与内部混发，便于统计/停发
+        cprev = state.get(date_str, report_name, "email_customers")
+        if cprev and cprev.get("status") == "ok":
+            result["customers"] = {"status": "skip", "reason": "今日已推送（防重复）"}
+        else:
+            subject = f"♻️ {report_name} · {date_str or '今日'}"
+            result["customers"] = _send(customers, subject,
+                                        render.render_html(markdown, report_name), markdown)
+            state.record(date_str, report_name, "email_customers",
+                         status=result["customers"].get("status"))
+    return result
 
 
 def send_to(report_name, markdown, to, date_str=""):

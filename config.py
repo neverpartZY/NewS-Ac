@@ -89,6 +89,7 @@ PRICE = load_json("price_config.json")
 PERPLEXITY = load_json("perplexity_config.json")
 REPORT = load_json("report_config.json")
 EMAIL = load_json("email_recipients.json")
+CUSTOMER_EMAIL = load_json("email_recipients_customers.json")
 WEBHOOK = load_json("webhook_groups.json")
 
 # 常用字段的便捷别名
