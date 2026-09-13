@@ -49,8 +49,8 @@ def test_digest_truncated():
     assert len(d) == 51 and d.endswith("…")
 
 
-def test_send_report_webhook_and_handoff(monkeypatch, tmp_path):
-    """CLI 不可用：webhook 短消息（不发全文）+ 生成 smartpage_create 交接文件。"""
+def test_send_report_no_doc_silent(monkeypatch, tmp_path):
+    """CLI 不可用：铁律禁止纯文字 → 群里什么都不发（no_doc），只落交接文件。"""
     calls = []
 
     def fake_post(url, headers, body, timeout=30):
@@ -65,11 +65,9 @@ def test_send_report_webhook_and_handoff(monkeypatch, tmp_path):
     monkeypatch.setattr(config, "REPORT_DIR", tmp_path)  # 交接文件写到临时目录
 
     r = wecom.send_report("综合日报", SAMPLE, "2026-08-28")
-    assert r["status"] == "ok_short" and r["sent"] == 2
-    # 短消息：含摘要、不含全文
-    content = calls[0]["markdown"]["content"]
-    assert "PPWR" in content and "完整版见邮件" in content and len(content) < 500
-    # 交接文件：smartpage_create 参数规格
+    assert r["status"] == "no_doc"
+    assert not calls  # 群里一条都不发（纯文字绝对禁止）
+    # 交接文件：smartpage_create 参数规格（供授权恢复后补推/OpenClaw 建文档）
     handoff = Path(r["handoff"])
     assert handoff.exists()
     data = json.loads(handoff.read_text(encoding="utf-8"))

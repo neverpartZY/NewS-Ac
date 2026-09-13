@@ -48,8 +48,10 @@ def main():
             mid = it.get("media_id", "")
             if not mid or mid == new_id:
                 continue
-            art = (it.get("content", {}).get("articles") or [{}])[0]
-            if art.get("title", "").strip() == title.strip():
+            # draft/batchget 的图文列表字段是 content.news_item（不是 articles，2026-09-11 实测修正）
+            arts = it.get("content", {}).get("news_item") or it.get("content", {}).get("articles") or [{}]
+            art = arts[0] if arts else {}
+            if (art.get("title") or "").strip() == title.strip():
                 res = delete(account, mid)
                 ok = res.get("errcode", -1) == 0
                 print(("DELETED " if ok else "FAIL ") + mid[:24] + " " + json.dumps(res, ensure_ascii=False)[:120])

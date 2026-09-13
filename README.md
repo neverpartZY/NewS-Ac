@@ -123,21 +123,25 @@ chmod +x run.sh
 crontab -e
 ```
 
-时间按**北京时间 07:30** 换算（代码内部日期已固定北京时间，只影响几点触发）：
+时间按**北京时间 15:00** 换算（代码内部日期已固定北京时间，只影响几点触发）：
 
 ```cron
 # 若服务器本身是中国时区：
-30 7 * * * /opt/NewS-Ac/run.sh
+0 15 * * 1-5 /opt/NewS-Ac/run.sh --once
+0 15 * * 6 /opt/NewS-Ac/run.sh --weekly
 
-# 若服务器是 UTC（07:30 北京 = 前一日 23:30 UTC）：
-30 23 * * * /opt/NewS-Ac/run.sh
+# 若服务器是 UTC（15:00 北京 = 07:00 UTC）：
+0 7 * * 1-5 /opt/NewS-Ac/run.sh --once
+0 7 * * 6 /opt/NewS-Ac/run.sh --weekly
 
 # 若 cron 支持 CRON_TZ（cronie/vixie-cron），可显式指定：
 CRON_TZ=Asia/Shanghai
-30 7 * * * /opt/NewS-Ac/run.sh --once                          # 每天 07:30 日报
-30 8 * * 6 /opt/NewS-Ac/run.sh --weekly                        # 每周六 08:30 周报
-30 9 28-31 * * [ "$(date -d tomorrow +%d)" = "01" ] && /opt/NewS-Ac/run.sh --monthly   # 月末 09:30 月报
+0 15 * * 1-5 /opt/NewS-Ac/run.sh --once                        # 周一~周五 15:00 日报（周六不发日报，改发周报；周日不发）
+0 15 * * 6 /opt/NewS-Ac/run.sh --weekly                        # 每周六 15:00 周报
+0 16 28-31 * * [ "$(date -d tomorrow +%d)" = "01" ] && /opt/NewS-Ac/run.sh --monthly   # 月末最后一天 16:00 月报
 ```
+
+> 以上即正式排期（与服务器实际 crontab 一致：日报周一~周五、周报周六，均 15:00）。月报按旧 skill 规定在每月最后一天出；服务器暂未配置月报 cron，需要时补上面最后一条。
 
 ### 4. （可选）systemd timer
 
