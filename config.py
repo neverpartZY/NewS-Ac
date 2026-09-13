@@ -31,6 +31,10 @@ REPORT_MP_MAP = {
     "综合日报": "feiliao_newview",
     "化学循环日报": "feiliao_newview",
     "再生PET日报": "regen_pet",
+    # 周报（周六，runner 显示名 日报→周报）：分类与日报一致
+    "综合周报": "feiliao_newview",
+    "化学循环周报": "feiliao_newview",
+    "再生PET周报": "regen_pet",
 }
 # mp_account → 公众号名（参考）
 MP_ACCOUNTS = {

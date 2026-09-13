@@ -229,11 +229,13 @@ def run_periodic(period, do_push=False):
     reports = {}
     for rname in names:
         subset = _scope_filter(articles, rname)
-        md = report.generate_periodic(rname, subset, price_points, period)
-        reports[rname] = md
-        out = config.REPORT_DIR / f"{rname}_{date_str}.md"
+        # 周报显示名：日报→周报（scope 键仍用日报名）；名字贯穿文件名/文档名/邮件主题/群消息
+        display = rname.replace("日报", "周报") if period == "weekly" else rname
+        md = report.generate_periodic(display, subset, price_points, period)
+        reports[display] = md
+        out = config.REPORT_DIR / f"{display}_{date_str}.md"
         out.write_text(md, encoding="utf-8")
-        print(f"[{period}] {rname}（{len(subset)} 条）-> {out.name}")
+        print(f"[{period}] {display}（{len(subset)} 条）-> {out.name}")
     _write_manifest(period, {"articles": len(articles)}, reports, date_str)
     if do_push:
         push_results = push_mod.push_all(reports, date_str)
