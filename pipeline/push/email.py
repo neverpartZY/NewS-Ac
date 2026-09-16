@@ -23,8 +23,48 @@ def _send(to, subject, html=None, text=""):
     return {"status": "ok", "id": r.get("id")}
 
 
+def send_merged(reports, date_str=""):
+    """全部报告合并为一封「合刊」邮件（省收件箱，也省 Resend 配额）。
+
+    reports: dict[报告名 -> markdown]。内部一封、客户一封（共 2 次 Resend 调用），
+    客户列表失败不影响内部投递。防重复（push_state）按合刊粒度记录：
+    今日合刊已成功发过 → 跳过（手动重跑不会重复轰炸收件人）。
+    """
+    date_str = date_str or config.today_str()
+    recipients = config.EMAIL.get("recipients", [])
+    if not recipients:
+        return {"status": "skip", "reason": "收件人为空"}
+
+    names = list(reports.keys())
+    suffix = "周报" if names and all("周报" in n for n in names) else "日报"
+    key = f"{suffix}合刊"
+    subject = f"♻️ 塑料循环经济{suffix}合刊 · {date_str}"
+    html = render.render_merged_html(reports, date_str)
+    text = "\n\n---\n\n".join(reports.values())
+
+    result = {}
+    prev = state.get(date_str, key, "email")
+    if prev and prev.get("status") == "ok":
+        result["email"] = {"status": "skip", "reason": "今日已推送过邮件（push_state 防重复）"}
+    else:
+        result["email"] = _send(recipients, subject, html=html, text=text)
+        state.record(date_str, key, "email", status=result["email"].get("status"))
+
+    customers = config.CUSTOMER_EMAIL.get("recipients", [])
+    if config.CUSTOMER_EMAIL.get("enabled", True) and customers:
+        # 客户单独一封（同一合刊排版），不与内部混发，便于统计/停发
+        cprev = state.get(date_str, key, "email_customers")
+        if cprev and cprev.get("status") == "ok":
+            result["customers"] = {"status": "skip", "reason": "今日已推送（防重复）"}
+        else:
+            result["customers"] = _send(customers, subject, html=html, text=text)
+            state.record(date_str, key, "email_customers",
+                         status=result["customers"].get("status"))
+    return result
+
+
 def send_report(report_name, markdown, date_str=""):
-    """按 config 里的收件人列表群发一份日报。
+    """单报发送（push_all 已改走 send_merged 合刊；此函数保留给指定单报投递/补推）。
 
     内部团队（email_recipients.json）与网站注册客户（email_recipients_customers.json）
     分两次 Resend 调用发送：客户列表失败不影响内部投递，两边状态都能观测。

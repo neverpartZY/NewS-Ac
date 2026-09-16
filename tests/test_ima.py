@@ -13,7 +13,9 @@ MD = "# ♻️ 综合日报\n\n2026-08-28\n\n内容。"
 
 
 def test_send_report_always_handoff(monkeypatch, tmp_path):
+    """断言兜底默认值（环境无关）：无 .env 配置时写入实测有效的正确 ID。"""
     monkeypatch.setattr(config, "REPORT_DIR", tmp_path)
+    monkeypatch.setattr(config, "get_key", lambda k: None)  # 屏蔽环境 .env，专测代码兜底
     r = ima.send_report("综合日报", MD, "2026-08-28")
     assert r["status"] == "handoff"
     p = tmp_path / "综合日报_2026-08-28_ima_handoff.json"
@@ -23,6 +25,17 @@ def test_send_report_always_handoff(monkeypatch, tmp_path):
     assert data["file_name"] == "综合日报_2026-08-28.md"
     assert data["content_markdown"] == MD
     assert "ima-mcp" in data["tool"]
+
+
+def test_handoff_prefers_env_config(monkeypatch, tmp_path):
+    """.env 配置优先于代码兜底（服务器实际走的就是这条路径）。"""
+    monkeypatch.setattr(config, "REPORT_DIR", tmp_path)
+    env = {"IMA_KB_ID": "KB_FROM_ENV", "IMA_FOLDER_ID": "FOLDER_FROM_ENV"}
+    monkeypatch.setattr(config, "get_key", lambda k: env.get(k))
+    ima.send_report("综合日报", MD, "2026-08-28")
+    data = json.loads(
+        (tmp_path / "综合日报_2026-08-28_ima_handoff.json").read_text(encoding="utf-8"))
+    assert data["kb_id"] == "KB_FROM_ENV" and data["folder_id"] == "FOLDER_FROM_ENV"
 
 
 def test_handoff_uses_today_when_no_date(monkeypatch, tmp_path):

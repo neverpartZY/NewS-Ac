@@ -246,7 +246,72 @@ def _render_periodic_body(lines, i):
     return "".join(out)
 
 
-# ---------------- 模板 ----------------
+# ---------------- 合刊模板 ----------------
+
+def _split_head(md):
+    """剥掉报告首行 # 标题 与日期行，返回 (全部行, 正文起始下标)——合刊分节复用各报告正文。"""
+    lines = md.split("\n")
+    i = 0
+    if lines and lines[0].lstrip().startswith("# "):
+        i = 1
+        while i < len(lines) and not lines[i].strip():
+            i += 1
+        if i < len(lines) and lines[i].strip() and \
+                not lines[i].lstrip().startswith("#") and re.match(r"^\d{4}", lines[i].strip()):
+            i += 1
+    return lines, i
+
+
+def render_merged_html(reports, date_str=""):
+    """多份报告合为一封邮件：统一头部 + 各报告分节连排（日报/周报文体逐份自动适配）。
+
+    reports: dict[报告名 -> markdown]。合刊类型（日报/周报）按报告名自动判定。
+    """
+    names = list(reports.keys())
+    suffix = "周报" if names and all("周报" in n for n in names) else "日报"
+    title = f"♻️ 塑料循环经济{suffix}合刊"
+    date_line = date_str
+
+    sections = []
+    for name, md in reports.items():
+        lines, i = _split_head(md)
+        body_html = (_render_periodic_body(lines, i) if _is_periodic(md)
+                     else _render_daily_body(lines, i))
+        sections.append(
+            f'<div style="margin:34px 0 14px;border-left:5px solid {ACCENT_BLUE};'
+            f'background:linear-gradient(90deg,{LIGHT_BLUE},{WHITE});'
+            f'border-radius:0 5px 5px 0;padding:10px 16px;">'
+            f'<span style="font-size:20px;font-weight:800;color:{DEEP_BLUE};">'
+            f'{html_mod.escape(name)}</span></div>' + body_html)
+
+    toc = "本刊包含：" + " ｜ ".join(html_mod.escape(n) for n in names)
+    footer = (f"📝 数据截至 {date_line or '今日'}，由 AI 多源采集并经语义去重，"
+              f"仅供参考；每条附原文链接，可点击核实。")
+
+    return f"""<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#f2f4f7;font-family:-apple-system,'PingFang SC','Microsoft YaHei',sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background:#f2f4f7;padding:20px 0;">
+<tr><td align="center">
+<table width="620" cellpadding="0" cellspacing="0" role="presentation" style="max-width:620px;width:100%;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e6e9ee;">
+  <tr><td style="text-align:center;background:linear-gradient({LIGHT_BLUE},{WHITE});border-bottom:3px solid {ACCENT_BLUE};padding:28px 32px 18px;">
+    <div style="font-size:24px;font-weight:800;color:{DEEP_BLUE};">{html_mod.escape(title)}</div>
+    <div style="font-size:14px;font-weight:700;color:{ACCENT_BLUE};margin-top:8px;">{html_mod.escape(date_line)}</div>
+    <div style="font-size:13px;color:{SMALL_GRAY};margin-top:10px;">{toc}</div>
+  </td></tr>
+  <tr><td style="padding:6px 32px 20px;">
+    {''.join(sections)}
+  </td></tr>
+  <tr><td style="padding:16px 32px;color:{SMALL_GRAY};font-size:13px;border-top:1px solid {SEPARATOR};">
+    {footer}
+  </td></tr>
+</table>
+</td></tr>
+</table>
+</body></html>"""
+
+
+# ---------------- 单报模板 ----------------
 
 def render_html(markdown, report_name="", date_str=""):
     lines = markdown.split("\n")

@@ -81,7 +81,7 @@ reports/     生成的 3 份日报 markdown
 | LLM | `LLM_API_KEY`（或 `DEEPSEEK_API_KEY`）、`LLM_BASE_URL`、`LLM_MODEL` | 默认 DeepSeek `deepseek-chat` |
 | Embedding | `SILICONFLOW_API_KEY`、`EMBED_MODEL` | 默认 `BAAI/bge-m3` |
 | 公众号采集 | `WEIXINZS_API_KEY` | weixinzs.org（旧 mp-article-subscription 的 key） |
-| 邮件 | `RESEND_API_KEY`、`FROM_EMAIL` | 收件人读 `config/email_recipients.json` |
+| 邮件 | `RESEND_API_KEY`、`FROM_EMAIL` | 收件人读 `config/email_recipients.json`；多份分报合并为一封「合刊」（内部一封 + 客户一封） |
 | 企业微信 | `config/webhook_groups.json` 内 webhook | 已含 2 个群 |
 | IMA 知识库 | `IMA_OPENAPI_CLIENTID/APIKEY` | 见下方「待补输入」 |
 | 公众号草稿箱 | `WECHAT_MP_APPID/SECRET/THUMB_MEDIA_ID` | 只建草稿不发表 |
