@@ -97,6 +97,14 @@ def _table(lines, i):
 def _render_daily_body(lines, i):
     body = []
     in_list = False
+    open_item = False  # 未闭合的条目卡片 div（每条新闻一张卡，下一块级元素前必须闭合）
+
+    def _close_item():
+        nonlocal open_item
+        if open_item:
+            body.append("</div>")
+            open_item = False
+
     while i < len(lines):
         s = lines[i].strip()
         if not s:
@@ -104,14 +112,17 @@ def _render_daily_body(lines, i):
             i += 1
             continue
         if s.startswith("|"):
+            _close_item()
             t, i = _table(lines, i)
             body.append(t)
             in_list = False
             continue
         if s.startswith("### "):
+            _close_item()
             body.append(f'<h3 style="color:{DEEP_BLUE};font-weight:700;font-size:17px;margin:20px 0 8px;">{_inline(s[4:])}</h3>')
             in_list = False
         elif s.startswith("## "):
+            _close_item()
             body.append(
                 f'<div style="margin:28px 0 14px;border-left:5px solid {ACCENT_BLUE};'
                 f'background:linear-gradient(90deg,{LIGHT_BLUE},{WHITE});'
@@ -119,16 +130,20 @@ def _render_daily_body(lines, i):
                 f'<span style="font-size:19px;font-weight:700;color:{DEEP_BLUE};">{_inline(s[3:])}</span></div>')
             in_list = False
         elif s.startswith("# "):
+            _close_item()
             body.append(f'<h1 style="font-size:20px;font-weight:800;color:{DEEP_BLUE};margin:20px 0 10px;">{_inline(s[2:])}</h1>')
             in_list = False
         elif s.startswith("> "):
+            _close_item()
             body.append(f'<p style="color:{SMALL_GRAY};font-size:13px;line-height:1.7;">{_inline(s[2:])}</p>')
             in_list = False
         elif re.match(r"^\d+\.\s", s):
+            _close_item()
             title_txt = re.sub(r"^\d+\.\s*", "", s)
             body.append(f'<div style="margin:18px 0;padding-bottom:16px;border-bottom:1px solid {SEPARATOR};">'
                         f'<div style="font-size:17px;font-weight:800;color:{DEEP_BLUE};margin-bottom:6px;">'
                         f'{_links(title_txt)}</div>')
+            open_item = True
             in_list = True
         elif in_list:
             if "[" in s and "](" in s:
@@ -137,10 +152,12 @@ def _render_daily_body(lines, i):
                 body.append(f'<p style="font-size:16px;line-height:1.9;letter-spacing:0.3px;'
                             f'color:{BODY_GRAY};margin:0 0 6px;">{_inline(s)}</p>')
         else:
+            _close_item()
             body.append(f'<p style="font-size:16px;line-height:1.9;letter-spacing:0.3px;'
                         f'color:{BODY_GRAY};margin:12px 0;">{_inline(s)}</p>')
             in_list = False
         i += 1
+    _close_item()
     return "".join(body)
 
 
@@ -277,11 +294,11 @@ def render_merged_html(reports, date_str=""):
         lines, i = _split_head(md)
         body_html = (_render_periodic_body(lines, i) if _is_periodic(md)
                      else _render_daily_body(lines, i))
+        # 报告级标题用深蓝色带（与栏目级浅蓝竖条拉开层级）
         sections.append(
-            f'<div style="margin:34px 0 14px;border-left:5px solid {ACCENT_BLUE};'
-            f'background:linear-gradient(90deg,{LIGHT_BLUE},{WHITE});'
-            f'border-radius:0 5px 5px 0;padding:10px 16px;">'
-            f'<span style="font-size:20px;font-weight:800;color:{DEEP_BLUE};">'
+            f'<div style="margin:44px 0 16px;background:{DEEP_BLUE};'
+            f'border-radius:10px;padding:14px 20px;">'
+            f'<span style="font-size:19px;font-weight:800;color:#ffffff;">'
             f'{html_mod.escape(name)}</span></div>' + body_html)
 
     toc = "本刊包含：" + " ｜ ".join(html_mod.escape(n) for n in names)
