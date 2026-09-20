@@ -69,10 +69,16 @@ fi
 # 企微未发（no_doc = 智能文档创建失败；铁律：群里禁止纯文字，宁可不发）
 # 用户 2026-09-03 指定：这类技术性告警不发群，私发邮箱（.env ALERT_EMAIL）
 if grep -q 'no_doc' "$LOG"; then
+    # 850003 分两种：日志里带 authorizationList 授权链接 = 机器人「文档」权限过期（重扫码无效）
+    AUTH_LINK=$(grep -o 'https://work.weixin.qq.com/ai/aiHelper/authorizationList[^) ]*' "$LOG" | tail -1)
     email_alert "⚠️ 塑料日报企微未推送（$(date '+%F %T')）" \
 "智能文档创建失败，按铁律未向群里发任何消息（群里禁止纯文字）。
-常见原因：wecom-cli 授权过期 → 服务器上重新扫码：
+850003 分两种，按日志判断：
+① CLI 扫码凭证过期（日志无授权链接）→ 服务器重新扫码：
   wecom-cli auth init --noninteractive
+② 机器人「文档」使用权限过期（日志有授权链接）→ 重扫码无效，
+   必须由机器人创建者打开链接（或企微「工作台-智能机器人」）重新授权：
+${AUTH_LINK:-(日志中未发现授权链接，多为类型①，走上面重新扫码)}
 授权恢复后补推即可（补推只发文档链接）。
 主机: $(hostname)
 日志: $(pwd)/$LOG"

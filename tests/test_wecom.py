@@ -49,6 +49,24 @@ def test_digest_truncated():
     assert len(d) == 51 and d.endswith("…")
 
 
+def test_help_message_extraction():
+    """850003 类型②：help_message 带机器人授权链接（重扫码无效），必须能完整提取。"""
+    raw = ('{"errcode": 850003, "errmsg": "authorization expired", "results_json": null, '
+           '"help_message": "当前机器人「文档」使用权限已过期\\n'
+           '若你是智能机器人创建者，可以[点击这里]'
+           '(https://work.weixin.qq.com/ai/aiHelper/authorizationList?from=chat'
+           '&aibotid=33776999891279788&str_aibotid=aibg6XZnlSzGGi9sIMAwHqhV2gfs1SPHf0Y&type=1'
+           '&hide_more_btn=true)授权当前机器人文档使用权限"}')
+    msg = wecom._help_message(raw)
+    assert "已过期" in msg and "\\n" not in msg  # \n 已被反转义
+    link = wecom._auth_link(msg)
+    assert link.startswith("https://work.weixin.qq.com/ai/aiHelper/authorizationList")
+    assert link.endswith("hide_more_btn=true")  # 到右括号为止，不吃进后续中文
+    # 类型①（无 help_message）不误报
+    assert wecom._help_message('{"errcode": 850003, "errmsg": "authorization expired"}') == ""
+    assert wecom._auth_link("") == ""
+
+
 def test_send_report_no_doc_silent(monkeypatch, tmp_path):
     """CLI 不可用：铁律禁止纯文字 → 群里什么都不发（no_doc），只落交接文件。"""
     calls = []

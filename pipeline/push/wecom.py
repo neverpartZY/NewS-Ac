@@ -69,6 +69,33 @@ def _parse_url(text):
     return m.group(0) if m else ""
 
 
+_last_auth_link = ""  # 最近一次 850003 带出的机器人授权链接（help_message），供 no_doc reason 引用
+
+
+def _help_message(text):
+    """从 CLI 错误输出提取 help_message（850003 类型②「机器人文档权限过期」才有）。
+
+    这类过期重扫码无效，必须由机器人创建者走 help_message 里的授权链接
+    （或企微「工作台-智能机器人」）重新授权。wecom.py 此前把报错截断到 200 字符，
+    链接被吞掉，告警邮件只会给出「重新扫码」的错误指引。
+    """
+    if not text:
+        return ""
+    m = re.search(r'"help_message":\s*"((?:[^"\\]|\\.)*)"', text)
+    if not m:
+        return ""
+    try:
+        return json.loads(f'"{m.group(1)}"')
+    except Exception:  # noqa: BLE001
+        return ""
+
+
+def _auth_link(text):
+    m = re.search(r'https://work\.weixin\.qq\.com/ai/aiHelper/authorizationList[^\s)"\\]*',
+                  text or "")
+    return m.group(0) if m else ""
+
+
 def doc_name(report_name, date_str):
     """智能文档命名：中文名 + 中文括号日期（wecom 规范，禁用下划线英文日期）。"""
     return f"塑料循环经济日报·{report_name}（{date_str}）"
@@ -76,6 +103,7 @@ def doc_name(report_name, date_str):
 
 def create_doc(md_path, name):
     """wecom-cli smartpage import 建智能文档。成功返回 {"url","docid"}，失败 None。"""
+    global _last_auth_link
     payload = json.dumps({"name": name, "file_path": str(md_path)}, ensure_ascii=False)
     try:
         rc, out, err = _run(["smartpage", "import", "--json", payload])
@@ -85,7 +113,13 @@ def create_doc(md_path, name):
     url = _parse_url(out + err)
     if url:
         return {"url": url, "docid": ""}
-    print(f"  [wecom] smartpage import 失败: {(out or err)[:200]}")
+    full = out + err
+    print(f"  [wecom] smartpage import 失败: {full[:200]}")
+    help_msg = _help_message(full)
+    if help_msg:
+        # 完整 help_message（含授权链接）进日志：850003 类型②重扫码无效，告警邮件要引用链接
+        print(f"  [wecom] {help_msg}")
+        _last_auth_link = _auth_link(help_msg)
     return None
 
 
@@ -164,8 +198,11 @@ def send_report(report_name, markdown, date_str=""):
     if not doc:
         # 建不出文档：群里什么都不发。记 no_doc 供 run.sh email_alert 与授权后补推
         state.record(date_str, report_name, "wecom", status="no_doc")
+        reason = "智能文档创建失败，按铁律不发纯文字，已等授权恢复补推"
+        if _last_auth_link:
+            reason += f"；机器人文档权限过期（重扫码无效），授权链接: {_last_auth_link}"
         return {"status": "no_doc",
-                "reason": "智能文档创建失败，按铁律不发纯文字，已等授权恢复补推",
+                "reason": reason,
                 "handoff": str(write_handoff(report_name, markdown, date_str))}
 
     content = (f"**♻️ {report_name}（{date_str}）**\n{digest}\n"
